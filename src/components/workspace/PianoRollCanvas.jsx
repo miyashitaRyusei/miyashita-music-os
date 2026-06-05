@@ -1,8 +1,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { parseMidiFile, readFileAsArrayBuffer } from '../../utils/midiParser';
-import { midiToNoteName } from '../../utils/noteUtils';
-import { transposeToC } from '../../utils/noteUtils';
+import { midiToNoteName, transposeToC } from '../../utils/noteUtils';
+import { playMidiNotes, stopAudio } from '../../utils/audioPlayer';
 import MidiMetadataModal from './MidiMetadataModal';
 
 // ============================================
@@ -55,6 +55,8 @@ export default function PianoRollCanvas() {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
   const [scrollX, setScrollX] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [playbackCursor, setPlaybackCursor] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // --- ピクセル → 時間/ピッチ変換 ---
   const pxToTime = useCallback((px) => {
@@ -221,7 +223,32 @@ export default function PianoRollCanvas() {
       ctx.strokeRect(rx, ry, rw, rh);
     }
 
-  }, [canvasSize, midiData, scrollX, selectedNotes, isDragging, dragStartPx, dragEndPx]);
+    // --- 再生カーソルの描画 ---
+    const cursorX = timeToX(playbackCursor);
+    if (cursorX >= LEFT_MARGIN && cursorX <= canvasSize.width) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#e03131'; // 赤
+      ctx.lineWidth = 2;
+      ctx.moveTo(cursorX, TOP_MARGIN);
+      ctx.lineTo(cursorX, canvasSize.height - BOTTOM_MARGIN);
+      ctx.stroke();
+
+      // カーソル上の三角
+      ctx.beginPath();
+      ctx.fillStyle = '#e03131';
+      ctx.moveTo(cursorX - 5, TOP_MARGIN - 5);
+      ctx.lineTo(cursorX + 5, TOP_MARGIN - 5);
+      ctx.lineTo(cursorX, TOP_MARGIN + 2);
+      ctx.fill();
+    }
+
+    // ドロップUI
+    if (isDragOver) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+    }
+
+  }, [canvasSize, midiData, scrollX, selectedNotes, isDragging, dragStartPx, dragEndPx, playbackCursor, isDragOver]);
 
   // --- 空の状態の描画 ---
   function drawEmptyState(ctx, size) {
@@ -268,8 +295,18 @@ export default function PianoRollCanvas() {
     setDragEndPx({ x, y });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e) => {
     if (!isDragging || !dragStartPx || !dragEndPx || !midiData) {
+      setIsDragging(false);
+      return;
+    }
+
+    const x = e.nativeEvent.offsetX;
+    
+    // ドラッグせずにクリックだけした場合は再生カーソルをセット
+    if (Math.abs(x - dragStartPx.x) < 5) {
+      const clickedTime = pxToTime(x);
+      setPlaybackCursor(Math.max(0, clickedTime));
       setIsDragging(false);
       return;
     }
@@ -385,50 +422,51 @@ export default function PianoRollCanvas() {
     setScrollX((prev) => Math.max(0, Math.min(maxScroll, prev + e.deltaX + e.deltaY)));
   };
 
+  const togglePlayback = async () => {
+    if (isPlaying) {
+      stopAudio();
+      setIsPlaying(false);
+    } else {
+      if (!midiData) return;
+      setIsPlaying(true);
+      await playMidiNotes(midiData.notes, playbackCursor, () => {
+        setIsPlaying(false);
+      });
+    }
+  };
+
   return (
     <div className="piano-roll-wrapper">
-      {/* MIDI情報バー */}
-      {midiData && (
-        <div className="piano-roll__info-bar">
-          <span className="piano-roll__info-item">
-            {midiData.name}
-          </span>
-          <span className="piano-roll__info-item">
-            BPM {Math.round(midiData.tempo)}
-          </span>
-          <span className="piano-roll__info-item">
-            {midiData.timeSignature.numerator}/{midiData.timeSignature.denominator}
-          </span>
-          <span className="piano-roll__info-item">
-            {midiData.notes.length} notes
-          </span>
-          {selectedNotes.length > 0 && (
-            <span className="piano-roll__info-item piano-roll__info-item--accent">
-              {selectedNotes.length} selected
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Canvas コンテナ */}
-      <div
+      <div 
+        className="piano-roll-container" 
         ref={containerRef}
-        className={`piano-roll-canvas-container${isDragOver ? ' piano-roll-canvas-container--drag-over' : ''}`}
-        onDrop={handleDrop}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{ position: 'relative' }}
       >
-        <canvas
-          ref={canvasRef}
-          className="piano-roll-canvas"
-          style={{ width: canvasSize.width, height: canvasSize.height }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onWheel={handleWheel}
-        />
-      </div>
+        <canvas ref={canvasRef} style={{ display: 'block' }} />
+        
+        {/* 再生コントロール */}
+        <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', gap: '8px', zIndex: 10 }}>
+          <button 
+            className="btn btn--sm" 
+            style={{ 
+              background: isPlaying ? 'var(--accent-orange)' : 'var(--bg-elevated)', 
+              color: isPlaying ? '#fff' : 'var(--text-primary)',
+              border: '1px solid var(--border-default)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+            onClick={(e) => { e.stopPropagation(); togglePlayback(); }}
+          >
+            {isPlaying ? '■ 停止' : '▶ 再生'}
+          </button>
+        </div>
 
       {/* メタデータ入力モーダル */}
       {pendingMidiData && (

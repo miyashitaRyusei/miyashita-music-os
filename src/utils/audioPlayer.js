@@ -91,6 +91,40 @@ export async function playRhythmSequence(timings, onEnd) {
 }
 
 /**
+ * 生のMIDIノート配列を再生する
+ * @param {Array} notes - { name: 'C4', time: 0, duration: 1 } のような形式の配列
+ * @param {number} startSeconds - 再生開始位置（秒）
+ * @param {Function} onEnd - 再生完了時のコールバック
+ */
+export async function playMidiNotes(notes, startSeconds = 0, onEnd) {
+  await initTone();
+  stopAudio();
+
+  const now = Tone.now();
+  let maxEndTime = 0;
+
+  notes.forEach((note) => {
+    // 再生開始位置より前に終わっているノートは無視
+    if (note.time + note.duration <= startSeconds) return;
+
+    // ノートの開始位置がシーク位置より前なら、途中から再生するように計算
+    const playOffset = note.time < startSeconds ? 0 : note.time - startSeconds;
+    const playDuration = note.time < startSeconds ? note.duration - (startSeconds - note.time) : note.duration;
+    const startTime = now + playOffset;
+
+    synth.triggerAttackRelease(note.name, playDuration, startTime);
+
+    if (startTime + playDuration > maxEndTime) {
+      maxEndTime = startTime + playDuration;
+    }
+  });
+
+  if (onEnd && maxEndTime > 0) {
+    setTimeout(onEnd, (maxEndTime - now) * 1000 + 200);
+  }
+}
+
+/**
  * コード進行の再生（Tone.PolySynth と @tonaljs/tonal を使用）
  */
 export async function playChordProgression(chords, onEnd) {

@@ -25,29 +25,22 @@ export default function Workspace() {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleStockPitch = () => {
-    if (extractedPitch.length === 0) {
+  const handleStockPitchAndRhythm = () => {
+    if (extractedPitch.length === 0 || extractedRhythm.length === 0) {
       showToast('⚠️ ピアノロールでノートを選択してください');
       return;
     }
+    const timestamp = Date.now();
     addPitchPattern({
-      id: `p_${Date.now()}`,
+      id: `p_${timestamp}`,
       degrees: extractedPitch,
       source: stockAttributes.source,
       preference: stockAttributes.preference,
       section: stockAttributes.section,
       songId: activeSongId,
     });
-    showToast('✅ ピッチ辞書にストックしました');
-  };
-
-  const handleStockRhythm = () => {
-    if (extractedRhythm.length === 0) {
-      showToast('⚠️ ピアノロールでノートを選択してください');
-      return;
-    }
     addRhythmPattern({
-      id: `r_${Date.now()}`,
+      id: `r_${timestamp}`,
       timings: extractedRhythm,
       description: '自動抽出パターン',
       source: stockAttributes.source,
@@ -55,7 +48,7 @@ export default function Workspace() {
       section: stockAttributes.section,
       songId: activeSongId,
     });
-    showToast('✅ リズム辞書にストックしました');
+    showToast('✅ ピッチ＆リズム辞書にストックしました');
   };
 
   const handleStockChord = () => {
@@ -91,23 +84,45 @@ export default function Workspace() {
 
       {/* ピアノロールコンテナ */}
       <div className="workspace-section">
-        <span className="workspace-section__label">ピアノロール（ドラッグ＆ドロップでMIDI読み込み）</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span className="workspace-section__label">ピアノロール（ドラッグ＆ドロップでMIDI読み込み）</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="workspace-attr-label" style={{ marginBottom: 0 }}>Original Key</span>
+              <select 
+                className="input" 
+                style={{ width: '80px', padding: '4px 8px' }}
+                value={stockAttributes.originalKey} 
+                onChange={(e) => useAppStore.getState().setStockOriginalKey(e.target.value)}
+              >
+                {['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'].map(k => (
+                  <option key={k} value={k}>{k}</option>
+                ))}
+              </select>
+            </div>
+            <button className="btn btn--primary" onClick={handleStockPitchAndRhythm}>
+              ♫ ピッチ＆リズム辞書へストック
+            </button>
+          </div>
+        </div>
         <PianoRollCanvas />
       </div>
 
       {/* コード入力エリア */}
       <div className="workspace-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+          <span className="workspace-section__label" style={{ marginBottom: 0 }}>コード進行の入力・解析</span>
+          <button className="btn btn--primary" onClick={handleStockChord}>
+            ♬ コード辞書へストック
+          </button>
+        </div>
         <ChordInputArea />
       </div>
 
-      {/* 属性選択＆ストック実行 */}
+      {/* 属性設定 */}
       <div className="workspace-section">
-        <span className="workspace-section__label">ストック属性</span>
-        <StockControls 
-          onStockPitch={handleStockPitch}
-          onStockRhythm={handleStockRhythm}
-          onStockChord={handleStockChord}
-        />
+        <span className="workspace-section__label">ストック属性の設定</span>
+        <StockControls />
       </div>
 
       {/* トースト通知 */}

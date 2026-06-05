@@ -140,9 +140,9 @@ const useAppStore = create((set, get) => ({
   // Stock Attributes
   // ============================================
   stockAttributes: {
-    source: 'original',
-    preference: 'like',
-    section: 'chorus',
+    source: '自作曲',
+    preference: '好き',
+    section: 'Aメロ',
     originalKey: 'C',
   },
   setStockSource: (source) => set((state) => ({ stockAttributes: { ...state.stockAttributes, source } })),
