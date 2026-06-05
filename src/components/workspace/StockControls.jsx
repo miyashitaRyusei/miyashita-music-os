@@ -69,6 +69,7 @@ export default function StockControls({ onStockPitch, onStockRhythm, onStockChor
               </span>
             ))}
           </div>
+        </div>
       </div>
     </div>
   );
