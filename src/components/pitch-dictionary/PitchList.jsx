@@ -22,8 +22,8 @@ function degreeToValue(degreeStr) {
 function PitchPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const sourceLabel = pattern.source === 'original' ? 'Original' : 'Reference';
-  const prefLabel = pattern.preference === 'like' ? 'Like' : 'Dislike';
+  const sourceLabel = pattern.source === 'original' ? '自作曲' : 'リファレンス';
+  const prefLabel = pattern.preference === 'like' ? '好き' : '嫌い';
 
   // --- グラフ描画用のデータ計算 ---
   const values = pattern.degrees.map(degreeToValue);

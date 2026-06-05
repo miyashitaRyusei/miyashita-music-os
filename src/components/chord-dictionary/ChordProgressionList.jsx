@@ -3,8 +3,8 @@ import useAppStore from '../../store/useAppStore';
 import { playChordProgression, stopAudio } from '../../utils/audioPlayer';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
-  const sourceLabel = progression.source === 'original' ? 'Original' : 'Reference';
-  const prefLabel = progression.preference === 'like' ? 'Like' : 'Dislike';
+  const sourceLabel = progression.source === 'original' ? '自作曲' : 'リファレンス';
+  const prefLabel = progression.preference === 'like' ? '好き' : '嫌い';
 
   return (
     <div className="chord-block">

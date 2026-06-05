@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, Legend, ResponsiveContainer,
@@ -6,46 +6,22 @@ import {
 } from 'recharts';
 import useAppStore from '../store/useAppStore';
 import { generateAIPrompt } from '../utils/exportPrompt';
+import { calculateMetrics } from '../utils/metricsCalculator';
 
-const statsSummary = { totalPitchPatterns: 0, totalRhythmPatterns: 0, totalChordProgressions: 0, totalAnalyzed: 0 };
-const radarChartData = [
-  { axis: '跳躍進行率', original: 60, like: 80, dislike: 40 },
-  { axis: 'シンコペーション率', original: 50, like: 90, dislike: 30 },
-  { axis: '音符密度', original: 70, like: 60, dislike: 80 },
-  { axis: '4小節後半上昇率', original: 80, like: 95, dislike: 20 },
-  { axis: '音程の予測不能度', original: 40, like: 70, dislike: 50 },
-  { axis: '音価の予測不能度', original: 50, like: 80, dislike: 40 },
-  { axis: 'スケール制限度', original: 30, like: 85, dislike: 20 },
-  { axis: 'アウフタクト発生率', original: 60, like: 90, dislike: 30 },
-];
-const histogramData = [
-  { pitch: 'Do', original: 20, like: 25, dislike: 15 },
-  { pitch: 'Do#', original: 2, like: 1, dislike: 5 },
-  { pitch: 'Re', original: 15, like: 10, dislike: 20 },
-  { pitch: 'Re#', original: 1, like: 0, dislike: 8 },
-  { pitch: 'Mi', original: 18, like: 20, dislike: 10 },
-  { pitch: 'Fa', original: 5, like: 15, dislike: 5 },
-  { pitch: 'Fa#', original: 0, like: 5, dislike: 10 },
-  { pitch: 'Sol', original: 25, like: 20, dislike: 15 },
-  { pitch: 'Sol#', original: 1, like: 0, dislike: 2 },
-  { pitch: 'La', original: 10, like: 5, dislike: 8 },
-  { pitch: 'La#', original: 0, like: 1, dislike: 5 },
-  { pitch: 'Si', original: 3, like: 0, dislike: 2 },
-];
 const aiPrescriptionText = "AIによる分析結果はまだありません。";
 
 const COLORS = {
-  original: '#d13bc7', // ネオンパープル
-  like: '#00e5ff',     // シアン
-  dislike: '#4d4d4d',  // ダークグレー
+  original: '#d13bc7', // ネオンパープル (自作曲)
+  like: '#00e5ff',     // シアン (好き)
+  dislike: '#4d4d4d',  // ダークグレー (嫌い)
 };
 
-function StatsCards() {
+function StatsCards({ statsSummary }) {
   const items = [
     { label: 'ピッチパターン', value: statsSummary.totalPitchPatterns },
     { label: 'リズムパターン', value: statsSummary.totalRhythmPatterns },
     { label: 'コード進行', value: statsSummary.totalChordProgressions },
-    { label: '総分析数', value: statsSummary.totalAnalyzed },
+    { label: '総ストック数', value: statsSummary.totalAnalyzed },
   ];
 
   return (
@@ -60,12 +36,12 @@ function StatsCards() {
   );
 }
 
-function RadarChartPanel() {
+function RadarChartPanel({ radarChartData }) {
   return (
     <div className="card">
       <div className="card__header">
         <span className="card__title">メロディ特徴レーダー</span>
-        <span className="card__subtitle">8軸比較: Original vs Like vs Dislike</span>
+        <span className="card__subtitle">8軸比較: 自作曲 vs 好き vs 嫌い</span>
       </div>
       <ResponsiveContainer width="100%" height={400}>
         <RadarChart data={radarChartData} outerRadius="70%">
@@ -88,24 +64,24 @@ function RadarChartPanel() {
             }} 
           />
           <Radar
-            name="Original"
-            dataKey="original"
+            name="自作曲"
+            dataKey="自作曲"
             stroke={COLORS.original}
             fill={COLORS.original}
             fillOpacity={0.4}
             strokeWidth={2}
           />
           <Radar
-            name="Like"
-            dataKey="like"
+            name="好き"
+            dataKey="好き"
             stroke={COLORS.like}
             fill={COLORS.like}
             fillOpacity={0.4}
             strokeWidth={2}
           />
           <Radar
-            name="Dislike"
-            dataKey="dislike"
+            name="嫌い"
+            dataKey="嫌い"
             stroke={COLORS.dislike}
             fill={COLORS.dislike}
             fillOpacity={0.2}
@@ -121,7 +97,7 @@ function RadarChartPanel() {
   );
 }
 
-function HistogramPanel() {
+function HistogramPanel({ histogramData }) {
   return (
     <div className="card">
       <div className="card__header">
@@ -153,17 +129,16 @@ function HistogramPanel() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
             }}
           />
-          <Bar dataKey="original" name="Original" fill={COLORS.original} radius={[3, 3, 0, 0]} />
-          <Bar dataKey="like" name="Like" fill={COLORS.like} radius={[3, 3, 0, 0]} />
-          <Bar dataKey="dislike" name="Dislike" fill={COLORS.dislike} radius={[3, 3, 0, 0]} />
+          <Bar dataKey="original" name="自作曲" fill={COLORS.original} radius={[3, 3, 0, 0]} />
+          <Bar dataKey="like" name="好き" fill={COLORS.like} radius={[3, 3, 0, 0]} />
+          <Bar dataKey="dislike" name="嫌い" fill={COLORS.dislike} radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-function MetricsReferencePanel() {
-  const { pitchPatterns, rhythmPatterns } = useAppStore();
+function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopyPrompt = () => {
@@ -183,7 +158,7 @@ function MetricsReferencePanel() {
     { name: '跳躍進行率', desc: 'メロディが隣の音へ進まず、離れた音へジャンプする割合。感情の起伏やフックの強さを表す。' },
     { name: 'シンコペーション率', desc: '拍の頭ではなく、裏拍や食い気味で発音される割合。ノリや疾走感を表す。' },
     { name: '音符密度（早口度）', desc: '1小節あたりに詰め込まれている音符の数。言葉の詰まり具合や勢いを表す。' },
-    { name: '4小節後半上昇率', desc: '4小節単位のフレーズで、後半に向けて音高が上がっていく割合。J-POP特有のサビの盛り上がり（カタルシス）の強さを表す。' },
+    { name: 'フレーズ上昇率', desc: 'フレーズの最後に向けて音高が上がっていく割合。J-POP特有のサビの盛り上がり（カタルシス）の強さを表す。' },
     { name: '音程の予測不能度', desc: '情報エントロピーを用いた、使用される音高の乱雑さ。低いと単調、高いと予測不能なメロディになる。' },
     { name: '音価の予測不能度', desc: 'リズム（音の長さ）の乱雑さ。付点や3連符などが混ざるほど高くなり、変化に富む。' },
     { name: 'スケール制限度', desc: '特定の音（ファやシなど）をあえて使わない割合。「四六抜き」などの引き算の美学によるキャッチーさを表す。' },
@@ -223,6 +198,19 @@ function MetricsReferencePanel() {
 }
 
 export default function Dashboard() {
+  const { pitchPatterns, rhythmPatterns, chordProgressions } = useAppStore();
+
+  const { histogramData, radarChartData } = useMemo(() => {
+    return calculateMetrics(pitchPatterns, rhythmPatterns);
+  }, [pitchPatterns, rhythmPatterns]);
+
+  const statsSummary = {
+    totalPitchPatterns: pitchPatterns.length,
+    totalRhythmPatterns: rhythmPatterns.length,
+    totalChordProgressions: chordProgressions.length,
+    totalAnalyzed: pitchPatterns.length + rhythmPatterns.length + chordProgressions.length,
+  };
+
   return (
     <div className="page animate-fade-in">
       <div className="page__header">
@@ -230,14 +218,18 @@ export default function Dashboard() {
         <p className="page__subtitle">ストックデータの統計比較とAIからの作曲処方箋</p>
       </div>
 
-      <StatsCards />
+      <StatsCards statsSummary={statsSummary} />
 
       <div className="grid-2 dashboard-charts">
-        <RadarChartPanel />
-        <HistogramPanel />
+        <RadarChartPanel radarChartData={radarChartData} />
+        <HistogramPanel histogramData={histogramData} />
       </div>
 
-      <MetricsReferencePanel />
+      <MetricsReferencePanel 
+        pitchPatterns={pitchPatterns} 
+        rhythmPatterns={rhythmPatterns} 
+        radarChartData={radarChartData}
+      />
     </div>
   );
 }
