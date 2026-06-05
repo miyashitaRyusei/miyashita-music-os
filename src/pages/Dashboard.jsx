@@ -4,9 +4,35 @@ import {
   Radar, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { radarChartData, histogramData, aiPrescriptionText, statsSummary } from '../data/mockData';
 import useAppStore from '../store/useAppStore';
 import { generateAIPrompt } from '../utils/exportPrompt';
+
+const statsSummary = { totalPitchPatterns: 0, totalRhythmPatterns: 0, totalChordProgressions: 0, totalAnalyzed: 0 };
+const radarChartData = [
+  { axis: '跳躍進行率', original: 60, like: 80, dislike: 40 },
+  { axis: 'シンコペーション率', original: 50, like: 90, dislike: 30 },
+  { axis: '音符密度', original: 70, like: 60, dislike: 80 },
+  { axis: '4小節後半上昇率', original: 80, like: 95, dislike: 20 },
+  { axis: '音程の予測不能度', original: 40, like: 70, dislike: 50 },
+  { axis: '音価の予測不能度', original: 50, like: 80, dislike: 40 },
+  { axis: 'スケール制限度', original: 30, like: 85, dislike: 20 },
+  { axis: 'アウフタクト発生率', original: 60, like: 90, dislike: 30 },
+];
+const histogramData = [
+  { pitch: 'Do', original: 20, like: 25, dislike: 15 },
+  { pitch: 'Do#', original: 2, like: 1, dislike: 5 },
+  { pitch: 'Re', original: 15, like: 10, dislike: 20 },
+  { pitch: 'Re#', original: 1, like: 0, dislike: 8 },
+  { pitch: 'Mi', original: 18, like: 20, dislike: 10 },
+  { pitch: 'Fa', original: 5, like: 15, dislike: 5 },
+  { pitch: 'Fa#', original: 0, like: 5, dislike: 10 },
+  { pitch: 'Sol', original: 25, like: 20, dislike: 15 },
+  { pitch: 'Sol#', original: 1, like: 0, dislike: 2 },
+  { pitch: 'La', original: 10, like: 5, dislike: 8 },
+  { pitch: 'La#', original: 0, like: 1, dislike: 5 },
+  { pitch: 'Si', original: 3, like: 0, dislike: 2 },
+];
+const aiPrescriptionText = "AIによる分析結果はまだありません。";
 
 const COLORS = {
   original: '#d13bc7', // ネオンパープル
