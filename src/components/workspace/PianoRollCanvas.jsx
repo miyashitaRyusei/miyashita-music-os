@@ -467,6 +467,7 @@ export default function PianoRollCanvas() {
             {isPlaying ? '■ 停止' : '▶ 再生'}
           </button>
         </div>
+      </div>
 
       {/* メタデータ入力モーダル */}
       {pendingMidiData && (
