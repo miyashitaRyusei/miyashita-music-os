@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { parseChordInput } from '../utils/chordParser';
 import { extractPitchArray, extractRhythmArray, isNoteInSelection } from '../utils/noteUtils';
-import { mockPitchPatterns, mockRhythmPatterns, mockChordProgressions } from '../data/mockData';
+import { supabase } from '../lib/supabase';
 
 const useAppStore = create((set, get) => ({
   // ============================================
@@ -9,31 +9,92 @@ const useAppStore = create((set, get) => ({
   // ============================================
   isAnalyzing: false,
   setIsAnalyzing: (status) => set({ isAnalyzing: status }),
+  isLoadingData: false,
+
+  // ============================================
+  // Data Fetching (Supabase)
+  // ============================================
+  fetchData: async () => {
+    set({ isLoadingData: true });
+    try {
+      const [
+        { data: songs },
+        { data: pitches },
+        { data: rhythms },
+        { data: chords }
+      ] = await Promise.all([
+        supabase.from('songs').select('*').order('imported_at', { ascending: false }),
+        supabase.from('pitch_patterns').select('*').order('created_at', { ascending: false }),
+        supabase.from('rhythm_patterns').select('*').order('created_at', { ascending: false }),
+        supabase.from('chord_progressions').select('*').order('created_at', { ascending: false }),
+      ]);
+
+      set({
+        registeredSongs: songs || [],
+        pitchPatterns: pitches || [],
+        rhythmPatterns: rhythms || [],
+        chordProgressions: chords || [],
+      });
+    } catch (err) {
+      console.error('Error fetching data from Supabase:', err);
+    } finally {
+      set({ isLoadingData: false });
+    }
+  },
 
   // ============================================
   // Registered Songs State
   // ============================================
   registeredSongs: [],
   activeSongId: null,
-  registerSong: (song) => set((state) => ({
-    registeredSongs: [song, ...state.registeredSongs],
-    activeSongId: song.id,
-  })),
+  registerSong: async (song) => {
+    const { error } = await supabase.from('songs').insert([
+      {
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        original_key: song.originalKey,
+        bpm: song.bpm,
+        min_note: song.minNote,
+        max_note: song.maxNote,
+        imported_at: song.importedAt || new Date().toISOString()
+      }
+    ]);
+
+    if (!error) {
+      set((state) => ({
+        registeredSongs: [{ ...song, originalKey: song.originalKey, minNote: song.minNote, maxNote: song.maxNote, importedAt: song.importedAt }, ...state.registeredSongs],
+        activeSongId: song.id,
+      }));
+    } else {
+      console.error('Failed to register song:', error);
+    }
+  },
+  removeSong: async (id) => {
+    const { error } = await supabase.from('songs').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({
+        registeredSongs: state.registeredSongs.filter(s => s.id !== id),
+        pitchPatterns: state.pitchPatterns.filter(p => p.song_id !== id && p.songId !== id),
+        rhythmPatterns: state.rhythmPatterns.filter(p => p.song_id !== id && p.songId !== id),
+        chordProgressions: state.chordProgressions.filter(c => c.song_id !== id && c.songId !== id),
+        activeSongId: state.activeSongId === id ? null : state.activeSongId
+      }));
+    }
+  },
   setActiveSongId: (id) => set({ activeSongId: id }),
 
   // ============================================
   // PianoRoll State
   // ============================================
-  midiData: null,           // パース済みMIDIデータ（midiParser.js の出力）
+  midiData: null,
   setMidiData: (data) => set({ midiData: data, selectedNotes: [], extractedPitch: [], extractedRhythm: [] }),
   clearMidiData: () => set({ midiData: null, selectedNotes: [], extractedPitch: [], extractedRhythm: [] }),
 
-  // ドラッグ選択されたノート配列
   selectedNotes: [],
   setSelectedNotes: (notes) => set({ selectedNotes: notes }),
 
-  // 選択範囲（ピクセル座標ではなく時間/ピッチ座標）
-  selectedRegion: null,     // { startTime, endTime, startPitch, endPitch }
+  selectedRegion: null,
   setSelectedRegion: (region) => {
     const { midiData } = get();
     if (!region || !midiData) {
@@ -41,10 +102,7 @@ const useAppStore = create((set, get) => ({
       return;
     }
 
-    // 選択範囲と交差するノートを抽出
     const selected = midiData.notes.filter((note) => isNoteInSelection(note, region));
-
-    // ピッチ・リズムデータを即時抽出
     const pitch = extractPitchArray(selected);
     const rhythm = extractRhythmArray(selected, midiData.measureDuration);
 
@@ -62,9 +120,8 @@ const useAppStore = create((set, get) => ({
     extractedRhythm: [],
   }),
 
-  // 抽出データ（ストックボタン押下前の一時データ）
-  extractedPitch: [],       // 階名配列 ['Do', 'Re', 'Mi', ...]
-  extractedRhythm: [],      // 相対時間配列 [{ relativeTime, duration, degreeName }]
+  extractedPitch: [],
+  extractedRhythm: [],
 
   // ============================================
   // Chord Input State
@@ -80,117 +137,145 @@ const useAppStore = create((set, get) => ({
   clearChordInput: () => set({ chordInputText: '', parsedChords: [] }),
 
   // ============================================
-  // Stock Attributes（ストック時の属性）
+  // Stock Attributes
   // ============================================
   stockAttributes: {
-    source: 'original',       // 'original' | 'reference'
-    preference: 'like',       // 'like' | 'dislike'
-    section: 'chorus',        // 'intro' | 'verse_a' | 'verse_b' | 'chorus' | 'bridge' | 'outro'
-    originalKey: 'C',         // 'C' | 'Db' | 'D' ...
+    source: 'original',
+    preference: 'like',
+    section: 'chorus',
+    originalKey: 'C',
   },
-  setStockSource: (source) => set((state) => ({
-    stockAttributes: { ...state.stockAttributes, source },
-  })),
-  setStockPreference: (preference) => set((state) => ({
-    stockAttributes: { ...state.stockAttributes, preference },
-  })),
-  setStockSection: (section) => set((state) => ({
-    stockAttributes: { ...state.stockAttributes, section },
-  })),
-  setStockOriginalKey: (originalKey) => set((state) => ({
-    stockAttributes: { ...state.stockAttributes, originalKey },
-  })),
+  setStockSource: (source) => set((state) => ({ stockAttributes: { ...state.stockAttributes, source } })),
+  setStockPreference: (preference) => set((state) => ({ stockAttributes: { ...state.stockAttributes, preference } })),
+  setStockSection: (section) => set((state) => ({ stockAttributes: { ...state.stockAttributes, section } })),
+  setStockOriginalKey: (originalKey) => set((state) => ({ stockAttributes: { ...state.stockAttributes, originalKey } })),
 
   // ============================================
   // Pitch Dictionary
   // ============================================
-  pitchPatterns: [...mockPitchPatterns],
-  addPitchPattern: (pattern) => set((state) => {
-    // UPSERT: 同じ階名配列がある場合はカウントアップ
+  pitchPatterns: [],
+  addPitchPattern: async (pattern) => {
+    const state = get();
     const key = pattern.degrees.join(',');
-    const existing = state.pitchPatterns.find((p) => p.degrees.join(',') === key);
+    const existing = state.pitchPatterns.find((p) => (p.degrees || []).join(',') === key);
+
     if (existing) {
-      return {
-        pitchPatterns: state.pitchPatterns.map((p) =>
-          p.id === existing.id
-            ? { ...p, count: (p.count || 1) + 1 }
-            : p
-        ),
+      const newCount = (existing.count || 1) + 1;
+      const { error } = await supabase.from('pitch_patterns').update({ count: newCount }).eq('id', existing.id);
+      if (!error) {
+        set((state) => ({
+          pitchPatterns: state.pitchPatterns.map((p) => p.id === existing.id ? { ...p, count: newCount } : p),
+        }));
+      }
+    } else {
+      const dbPattern = {
+        id: pattern.id,
+        song_id: pattern.songId,
+        degrees: pattern.degrees,
+        count: 1,
+        source: pattern.source,
+        preference: pattern.preference,
+        section: pattern.section
       };
+      const { error } = await supabase.from('pitch_patterns').insert([dbPattern]);
+      if (!error) {
+        set((state) => ({ pitchPatterns: [{ ...dbPattern, songId: pattern.songId }, ...state.pitchPatterns] }));
+      }
     }
-    // 新規: 配列の先頭に追加（UIですぐ見えるように）
-    return {
-      pitchPatterns: [{ ...pattern, count: 1 }, ...state.pitchPatterns],
-    };
-  }),
-  removePitchPattern: (id) => set((state) => ({
-    pitchPatterns: state.pitchPatterns.filter((p) => p.id !== id),
-  })),
+  },
+  removePitchPattern: async (id) => {
+    const { error } = await supabase.from('pitch_patterns').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ pitchPatterns: state.pitchPatterns.filter((p) => p.id !== id) }));
+    }
+  },
 
   // ============================================
   // Rhythm Dictionary
   // ============================================
-  rhythmPatterns: [...mockRhythmPatterns],
-  addRhythmPattern: (pattern) => set((state) => {
-    // UPSERT: 同じリズムキーがある場合はカウントアップ（テンポ非依存の正規化値を使用）
+  rhythmPatterns: [],
+  addRhythmPattern: async (pattern) => {
+    const state = get();
     const key = pattern.timings.map((t) => `${(t.normalizedTime || 0).toFixed(3)}:${(t.normalizedDuration || 0).toFixed(3)}`).join(',');
     const existing = state.rhythmPatterns.find((p) => {
-      const existingKey = p.timings.map((t) => `${(t.normalizedTime || 0).toFixed(3)}:${(t.normalizedDuration || 0).toFixed(3)}`).join(',');
+      const existingKey = (p.timings || []).map((t) => `${(t.normalizedTime || 0).toFixed(3)}:${(t.normalizedDuration || 0).toFixed(3)}`).join(',');
       return existingKey === key;
     });
+
     if (existing) {
-      return {
-        rhythmPatterns: state.rhythmPatterns.map((p) =>
-          p.id === existing.id
-            ? { ...p, count: (p.count || 1) + 1 }
-            : p
-        ),
+      const newCount = (existing.count || 1) + 1;
+      const { error } = await supabase.from('rhythm_patterns').update({ count: newCount }).eq('id', existing.id);
+      if (!error) {
+        set((state) => ({
+          rhythmPatterns: state.rhythmPatterns.map((p) => p.id === existing.id ? { ...p, count: newCount } : p),
+        }));
+      }
+    } else {
+      const dbPattern = {
+        id: pattern.id,
+        song_id: pattern.songId,
+        timings: pattern.timings,
+        description: pattern.description,
+        count: 1,
+        source: pattern.source,
+        preference: pattern.preference,
+        section: pattern.section
       };
+      const { error } = await supabase.from('rhythm_patterns').insert([dbPattern]);
+      if (!error) {
+        set((state) => ({ rhythmPatterns: [{ ...dbPattern, songId: pattern.songId }, ...state.rhythmPatterns] }));
+      }
     }
-    // 新規: 配列の先頭に追加
-    return {
-      rhythmPatterns: [{ ...pattern, count: 1 }, ...state.rhythmPatterns],
-    };
-  }),
-  removeRhythmPattern: (id) => set((state) => ({
-    rhythmPatterns: state.rhythmPatterns.filter((p) => p.id !== id),
-  })),
+  },
+  removeRhythmPattern: async (id) => {
+    const { error } = await supabase.from('rhythm_patterns').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ rhythmPatterns: state.rhythmPatterns.filter((p) => p.id !== id) }));
+    }
+  },
 
   // ============================================
-  // Chord Dictionary（UPSERT対応）
+  // Chord Dictionary
   // ============================================
-  chordProgressions: [...mockChordProgressions],
-  addChordProgression: (progression) => set((state) => {
-    // コード配列の文字列化でキー比較
+  chordProgressions: [],
+  addChordProgression: async (progression) => {
+    const state = get();
     const newKey = progression.chords.join('|');
-    const existing = state.chordProgressions.find((p) => p.chords.join('|') === newKey);
+    const existing = state.chordProgressions.find((p) => (p.chords || []).join('|') === newKey);
 
     if (existing) {
-      // 既存: count +1 & sections マージ（重複排除）
-      const mergedSections = [...new Set([
-        ...(existing.sections || []),
-        ...(progression.sections || []),
-      ])];
-      return {
-        chordProgressions: state.chordProgressions.map((p) =>
-          p.id === existing.id
-            ? { ...p, count: (p.count || 1) + 1, sections: mergedSections }
-            : p
-        ),
+      const mergedSections = [...new Set([...(existing.sections || []), ...(progression.sections || [])])];
+      const newCount = (existing.count || 1) + 1;
+      const { error } = await supabase.from('chord_progressions').update({ count: newCount, sections: mergedSections }).eq('id', existing.id);
+      if (!error) {
+        set((state) => ({
+          chordProgressions: state.chordProgressions.map((p) => p.id === existing.id ? { ...p, count: newCount, sections: mergedSections } : p),
+        }));
+      }
+    } else {
+      const dbProgression = {
+        id: progression.id,
+        song_id: progression.songId,
+        chords: progression.chords,
+        label: progression.label,
+        key: progression.key,
+        count: 1,
+        source: progression.source,
+        preference: progression.preference,
+        sections: progression.sections || []
       };
+      const { error } = await supabase.from('chord_progressions').insert([dbProgression]);
+      if (!error) {
+        set((state) => ({ chordProgressions: [{ ...dbProgression, songId: progression.songId }, ...state.chordProgressions] }));
+      }
     }
-
-    // 新規: 配列の先頭に追加（UIですぐに見えるようにする）
-    return {
-      chordProgressions: [
-        { ...progression, count: 1, sections: progression.sections || [] },
-        ...state.chordProgressions,
-      ],
-    };
-  }),
-  removeChordProgression: (id) => set((state) => ({
-    chordProgressions: state.chordProgressions.filter((p) => p.id !== id),
-  })),
+  },
+  removeChordProgression: async (id) => {
+    const { error } = await supabase.from('chord_progressions').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ chordProgressions: state.chordProgressions.filter((p) => p.id !== id) }));
+    }
+  },
 
   // ============================================
   // Dashboard State

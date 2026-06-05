@@ -57,10 +57,22 @@ function RhythmPatternItem({ pattern }) {
             <span className="dict-card__id">{pattern.description || pattern.id || 'Rhythm'}</span>
             <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{pattern.id}</span>
           </div>
+          {pattern.count > 1 && (
+            <span className="badge badge--orange">×{pattern.count}</span>
+          )}
         </div>
-        {pattern.count > 1 && (
-          <span className="badge badge--orange">×{pattern.count}</span>
-        )}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm('このリズムパターンを削除しますか？')) {
+              useAppStore.getState().removeRhythmPattern(pattern.id);
+            }
+          }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
+          title="削除"
+        >
+          🗑️
+        </button>
       </div>
 
       <div className="dict-card__visual" style={{ padding: '24px 16px' }}>

@@ -8,17 +8,29 @@ import RhythmDictionary from './pages/RhythmDictionary';
 import ChordDictionary from './pages/ChordDictionary';
 import SongRegistry from './pages/SongRegistry';
 import LoadingOverlay from './components/ui/LoadingOverlay';
+import useAppStore from './store/useAppStore';
 
 export default function App() {
+  const { fetchData, isLoadingData } = useAppStore();
+
   useEffect(() => {
+    // Supabaseから初期データを取得
+    fetchData();
+
     // Renderデプロイ時のコールドスタート対策 (Wake-up Ping)
-    // ユーザーがアクションを起こす前に非同期でバックエンドを起こしておく
     fetch('https://your-render-app.onrender.com/ping')
       .catch(() => {
-        // バックエンドが未実装/未デプロイでも画面はブロックしない
         console.log('Wake-up ping sent (backend might be asleep or not available yet)');
       });
-  }, []);
+  }, [fetchData]);
+
+  if (isLoadingData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading data from Supabase...</p>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

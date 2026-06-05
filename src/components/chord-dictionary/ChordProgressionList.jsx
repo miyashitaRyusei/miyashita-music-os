@@ -36,18 +36,29 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
         ))}
       </div>
       
-      <div className="chord-block__meta" style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div className="chord-block__meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span>{sourceLabel}</span>
           <span>·</span>
           <span>{prefLabel}</span>
         </div>
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {progression.sections?.map((sec, i) => (
             <span key={i} className="section-chip section-chip--small">
               {sec ? sec.replace('_', ' ').toUpperCase() : ''}
             </span>
           ))}
+          <button 
+            onClick={() => {
+              if (window.confirm('このコード進行を削除しますか？')) {
+                useAppStore.getState().removeChordProgression(progression.id);
+              }
+            }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
+            title="削除"
+          >
+            🗑️
+          </button>
         </div>
       </div>
     </div>

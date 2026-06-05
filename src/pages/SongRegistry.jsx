@@ -7,7 +7,8 @@ export default function SongRegistry() {
     pitchPatterns, 
     rhythmPatterns, 
     chordProgressions, 
-    activeSongId 
+    activeSongId,
+    removeSong
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,18 +79,31 @@ export default function SongRegistry() {
                 
                 {/* 1. タイトル＆アーティスト領域 */}
                 <div style={{ flex: '2 1 200px', minWidth: '200px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
-                      {song.title}
-                    </h3>
-                    {activeSongId === song.id && (
-                      <span className="badge badge--orange">作業中</span>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                        {song.title}
+                      </h3>
+                      {activeSongId === song.id && (
+                        <span className="badge badge--orange">作業中</span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        if (window.confirm(`「${song.title}」を削除しますか？\n※関連するピッチ・リズム・コードの辞書データも全て削除されます。`)) {
+                          removeSong(song.id);
+                        }
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '1rem' }}
+                      title="この曲と抽出データを削除"
+                    >
+                      🗑️
+                    </button>
                   </div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     <span>{song.artist}</span>
                     <span>•</span>
-                    <span style={{ color: 'var(--text-tertiary)' }}>{new Date(song.importedAt).toLocaleDateString()}</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{new Date(song.imported_at || song.importedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
@@ -97,14 +111,14 @@ export default function SongRegistry() {
                 <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                     <span style={{ display: 'inline-block', width: '40px', color: 'var(--text-tertiary)' }}>Key:</span> 
-                    <strong style={{ color: 'var(--text-primary)' }}>{song.originalKey}</strong>
+                    <strong style={{ color: 'var(--text-primary)' }}>{song.original_key || song.originalKey}</strong>
                     <span style={{ margin: '0 8px', color: 'var(--border-default)' }}>|</span>
                     <span style={{ display: 'inline-block', width: '40px', color: 'var(--text-tertiary)' }}>BPM:</span> 
                     <strong style={{ color: 'var(--text-primary)' }}>{song.bpm}</strong>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                     <span style={{ display: 'inline-block', width: '40px', color: 'var(--text-tertiary)' }}>Range:</span> 
-                    <strong style={{ color: 'var(--text-primary)' }}>{song.minNote} 〜 {song.maxNote}</strong>
+                    <strong style={{ color: 'var(--text-primary)' }}>{song.min_note || song.minNote} 〜 {song.max_note || song.maxNote}</strong>
                   </div>
                 </div>
 

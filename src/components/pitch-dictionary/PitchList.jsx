@@ -77,6 +77,18 @@ function PitchPatternItem({ pattern }) {
             <span className="badge badge--orange">×{pattern.count}</span>
           )}
         </div>
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm('このピッチパターンを削除しますか？')) {
+              useAppStore.getState().removePitchPattern(pattern.id);
+            }
+          }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
+          title="削除"
+        >
+          🗑️
+        </button>
       </div>
 
       <div className="dict-card__visual">
