@@ -1,0 +1,9 @@
+fastapi==0.110.0
+uvicorn==0.28.0
+python-multipart==0.0.9
+
+# 音楽解析用ライブラリ
+# Render無料枠（RAM 512MB）でのビルドエラーやメモリ不足を防ぐため、安定バージョンを指定
+numpy==1.26.4
+scipy==1.12.0
+tslearn==0.6.3

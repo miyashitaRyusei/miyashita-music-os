@@ -1,0 +1,136 @@
+import * as Tone from 'tone';
+
+// シングルトンとしてシンセサイザーを保持
+let synth = null;
+
+/**
+ * Tone.js の初期化（ユーザー操作時に呼ぶ必要がある）
+ */
+async function initTone() {
+  if (Tone.context.state !== 'running') {
+    await Tone.start();
+  }
+  if (!synth) {
+    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+    synth.volume.value = -6; // 音割れ防止のため少し下げる
+  }
+}
+
+/**
+ * 再生を強制停止する
+ */
+export function stopAudio() {
+  if (synth) {
+    synth.releaseAll();
+  }
+  Tone.Transport.stop();
+  Tone.Transport.cancel(0);
+}
+
+const DEGREE_TO_NOTE = {
+  'Do↓': 'C3', 'Re↓': 'D3', 'Mi↓': 'E3', 'Fa↓': 'F3', 'Sol↓': 'G3', 'La↓': 'A3', 'Si↓': 'B3',
+  'Do': 'C4', 'Re': 'D4', 'Mi': 'E4', 'Fa': 'F4', 'Sol': 'G4', 'La': 'A4', 'Si': 'B4',
+  'Do↑': 'C5', 'Re↑': 'D5', 'Mi↑': 'E5', 'Fa↑': 'F5', 'Sol↑': 'G5', 'La↑': 'A5', 'Si↑': 'B5',
+};
+
+/**
+ * ピッチパターンの再生（リズムを持たず、全て8分音符で再生）
+ */
+export async function playPitchSequence(degrees, onEnd) {
+  await initTone();
+  stopAudio();
+  
+  const now = Tone.now();
+  const stepTime = 0.25; // 8分音符相当（120BPM）
+  
+  degrees.forEach((degree, i) => {
+    const note = DEGREE_TO_NOTE[degree] || 'C4';
+    // 発音タイミングをスケジュール
+    synth.triggerAttackRelease(note, "8n", now + i * stepTime);
+  });
+
+  // 全て鳴り終わった後に状態をリセットするためのコールバック
+  if (onEnd) {
+    setTimeout(onEnd, degrees.length * stepTime * 1000 + 200);
+  }
+}
+
+/**
+ * リズムパターンの再生（ピッチを持たず、全てC4で再生）
+ */
+export async function playRhythmSequence(timings, onEnd) {
+  await initTone();
+  stopAudio();
+
+  const now = Tone.now();
+  const measureSeconds = 2.0; // 120BPMの4/4拍子は1小節2秒
+  
+  // アウフタクト（マイナス時間）がある場合、0始まりになるようにオフセットを加算
+  const minTime = Math.min(...timings.map(t => t.normalizedTime), 0);
+  const offset = Math.abs(minTime);
+
+  let maxEndTime = 0;
+
+  timings.forEach(timing => {
+    const note = 'C4';
+    // normalizedTime (0.0~1.0) を秒数に変換
+    const startTime = now + (timing.normalizedTime + offset) * measureSeconds;
+    const duration = timing.normalizedDuration * measureSeconds;
+    
+    // durationの90%だけ発音し、音の区切り（スタッカート感）を出す
+    synth.triggerAttackRelease(note, duration * 0.9, startTime);
+
+    if (startTime + duration > maxEndTime) {
+      maxEndTime = startTime + duration;
+    }
+  });
+
+  if (onEnd) {
+    setTimeout(onEnd, (maxEndTime - now) * 1000 + 200);
+  }
+}
+
+/**
+ * コード進行の再生（Tone.PolySynth と @tonaljs/tonal を使用）
+ */
+export async function playChordProgression(chords, onEnd) {
+  await initTone();
+  stopAudio();
+  
+  // @tonaljs/tonal の動的インポート（初回再生時にロード）
+  const { Chord, Note } = await import('@tonaljs/tonal');
+
+  const now = Tone.now();
+  const stepTime = 1.0; // 1秒ごとに1コード
+  
+  chords.forEach((chordName, i) => {
+    const chordData = Chord.get(chordName);
+    let currentOctave = 4;
+    let prevChroma = -1;
+    
+    // コードパースに成功した場合は構成音を取得、失敗した場合はルート音のみとする
+    let notes = [];
+    if (chordData.empty) {
+      // プレーンな文字列（'C'など）だけでもパースは成功するが、
+      // 万が一失敗した場合はそのまま4オクターブ目を付ける
+      notes = [chordName + '4'];
+    } else {
+      // 転回形を防ぎ、ルートから上に向かって積み上げるためのオクターブ調整
+      notes = chordData.notes.map((note) => {
+        const chroma = Note.chroma(note);
+        if (chroma < prevChroma) {
+          currentOctave++;
+        }
+        prevChroma = chroma;
+        return note + currentOctave;
+      });
+    }
+
+    // ポリフォニックで和音を発音（90%の時間だけ鳴らしてスタッカート感を出す）
+    synth.triggerAttackRelease(notes, stepTime * 0.9, now + i * stepTime);
+  });
+
+  if (onEnd) {
+    setTimeout(onEnd, chords.length * stepTime * 1000 + 200);
+  }
+}
