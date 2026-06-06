@@ -22,7 +22,7 @@ const useAppStore = create((set, get) => ({
         { data: pitches },
         { data: rhythms },
         { data: chords },
-        { data: relations }
+        { data: melodyChords }
       ] = await Promise.all([
         supabase.from('songs').select('*').order('imported_at', { ascending: false }),
         supabase.from('pitch_patterns').select('*').order('created_at', { ascending: false }),
@@ -33,10 +33,10 @@ const useAppStore = create((set, get) => ({
 
       set({
         registeredSongs: songs || [],
-        pitchPatterns: pitches || [],
-        rhythmPatterns: rhythms || [],
-        chordProgressions: chords || [],
-        melodyChordRelations: relations || [],
+        pitchPatterns: (pitches || []).map(p => ({ ...p, songId: p.song_id })),
+        rhythmPatterns: (rhythms || []).map(r => ({ ...r, songId: r.song_id })),
+        chordProgressions: (chords || []).map(c => ({ ...c, songId: c.song_id })),
+        melodyChordRelations: (melodyChords || []).map(m => ({ ...m, songId: m.song_id, melodyDegree: m.melody_degree, chordName: m.chord_name })),
       });
     } catch (err) {
       console.error('Error fetching data from Supabase:', err);
@@ -323,6 +323,56 @@ const useAppStore = create((set, get) => ({
     const { error } = await supabase.from('chord_progressions').delete().eq('id', id);
     if (!error) {
       set((state) => ({ chordProgressions: state.chordProgressions.filter((p) => p.id !== id) }));
+    }
+  },
+
+  // ============================================
+  // Melody x Chord Relations
+  // ============================================
+  melodyChordRelations: [],
+  addMelodyChordRelation: async (relation) => {
+    const state = get();
+    // 完全に同じ組み合わせを探す
+    const existing = state.melodyChordRelations.find((r) => 
+      r.songId === relation.songId &&
+      r.melodyDegree === relation.melodyDegree &&
+      r.chordName === relation.chordName &&
+      r.source === relation.source &&
+      r.preference === relation.preference &&
+      r.section === relation.section
+    );
+
+    if (existing) {
+      const newCount = (existing.count || 1) + 1;
+      const { error } = await supabase.from('melody_chord_relations').update({ count: newCount }).eq('id', existing.id);
+      if (!error) {
+        set((state) => ({
+          melodyChordRelations: state.melodyChordRelations.map((r) => r.id === existing.id ? { ...r, count: newCount } : r),
+        }));
+      }
+    } else {
+      const dbRelation = {
+        id: relation.id,
+        song_id: relation.songId,
+        melody_degree: relation.melodyDegree,
+        chord_name: relation.chordName,
+        count: 1,
+        source: relation.source,
+        preference: relation.preference,
+        section: relation.section
+      };
+      const { error } = await supabase.from('melody_chord_relations').insert([dbRelation]);
+      if (!error) {
+        set((state) => ({ 
+          melodyChordRelations: [{ ...dbRelation, songId: relation.songId, melodyDegree: relation.melodyDegree, chordName: relation.chordName }, ...state.melodyChordRelations] 
+        }));
+      }
+    }
+  },
+  removeMelodyChordRelation: async (id) => {
+    const { error } = await supabase.from('melody_chord_relations').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ melodyChordRelations: state.melodyChordRelations.filter((r) => r.id !== id) }));
     }
   },
 

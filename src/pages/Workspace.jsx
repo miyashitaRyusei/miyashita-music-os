@@ -133,7 +133,7 @@ export default function Workspace() {
     showToast('✅ コード辞書にストックしました（Cメジャーに移調済）');
   };
 
-  const handleStockMelodyChordRelations = () => {
+  const handleStockMelodyChordRelations = async () => {
     if (parsedChords.length === 0) {
       showToast('⚠️ コードを入力してください');
       return;
@@ -149,6 +149,7 @@ export default function Workspace() {
     const songTitle = song ? song.title : (midiData.name || '未設定楽曲');
 
     let relationCount = 0;
+    const promises = [];
 
     parsedChords.forEach((m) => {
       const chordsInMeasure = m.chords.length;
@@ -182,22 +183,28 @@ export default function Workspace() {
           
           const relationId = `${songTitle}-${m.measure}-${i}-${Date.now()}`;
 
-          addMelodyChordRelation({
-            id: relationId,
-            songId: activeSongId,
-            melodyDegree: degree,
-            chordName: transposedChord,
-            source: stockAttributes.source,
-            preference: stockAttributes.preference,
-            section: stockAttributes.section,
-          });
+          promises.push(
+            addMelodyChordRelation({
+              id: relationId,
+              songId: activeSongId,
+              melodyDegree: degree,
+              chordName: transposedChord,
+              source: stockAttributes.source,
+              preference: stockAttributes.preference,
+              section: stockAttributes.section,
+            })
+          );
           relationCount++;
         }
       });
     });
 
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+
     if (relationCount > 0) {
-      showToast(`✅ タイムライン全体から ${relationCount} 件のノンダイアトニック関係を抽出しました`);
+      showToast(`✅ タイムライン全体から ${relationCount} 件のメロディ×コード関係を抽出しました`);
     } else {
       showToast('⚠️ コードの切り替わりタイミングで鳴っているメロディが見つかりませんでした');
     }
