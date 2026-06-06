@@ -287,9 +287,19 @@ function parseChordToNotes(chordString, initialOctave, Chord, Note) {
     });
   }
 
+  // ベース音の決定（スラッシュコードなら指定された音、そうでないならルート音）
+  let effectiveBassNote = bassNote;
+  if (!effectiveBassNote && !chordData.empty) {
+    effectiveBassNote = chordData.tonic;
+  } else if (!effectiveBassNote && chordData.empty && fallbackMatch) {
+    // パース失敗時でもフォールバックからルートを拾えるなら拾う
+    effectiveBassNote = fallbackMatch[0];
+  }
+
   // ベース音があればオクターブ低くして追加
-  if (bassNote && chordNotes.length > 0) {
-    chordNotes.unshift(bassNote + (initialOctave - 1));
+  if (effectiveBassNote && chordNotes.length > 0) {
+    // スラッシュコード指定のベース音もルート音も、和音の最低音よりオクターブ下で鳴らす
+    chordNotes.unshift(effectiveBassNote + (initialOctave - 1));
   }
 
   return chordNotes;
