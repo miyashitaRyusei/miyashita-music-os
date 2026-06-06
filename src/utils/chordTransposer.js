@@ -23,7 +23,7 @@ export function transposeChord(chordName, originalKey) {
   if (!match) return chordName; // パースできない場合はそのまま返す
 
   const chordRoot = match[1];
-  const modifier = match[2];
+  let modifier = match[2];
 
   const rootIndex = ROOT_TO_INDEX[chordRoot];
   const keyIndex = ROOT_TO_INDEX[originalKey];
@@ -35,8 +35,21 @@ export function transposeChord(chordName, originalKey) {
   
   // 新しいルートのインデックス（0〜11に丸める）
   const newIndex = (rootIndex + offset + 12) % 12;
+  const transposedRoot = INDEX_TO_ROOT[newIndex];
 
-  return INDEX_TO_ROOT[newIndex] + modifier;
+  // 分数コード（ベース音指定）の対応
+  const slashMatch = modifier.match(/\/([A-G][#b]?)$/);
+  if (slashMatch) {
+    const bassNote = slashMatch[1];
+    const bassIndex = ROOT_TO_INDEX[bassNote];
+    if (bassIndex !== undefined) {
+      const newBassIndex = (bassIndex + offset + 12) % 12;
+      const transposedBass = INDEX_TO_ROOT[newBassIndex];
+      modifier = modifier.replace(`/${bassNote}`, `/${transposedBass}`);
+    }
+  }
+
+  return transposedRoot + modifier;
 }
 
 /**
