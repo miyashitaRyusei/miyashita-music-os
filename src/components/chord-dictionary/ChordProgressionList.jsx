@@ -3,8 +3,21 @@ import useAppStore from '../../store/useAppStore';
 import { playChordProgression, stopAudio } from '../../utils/audioPlayer';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
-  const sourceLabel = progression.source === 'original' ? '自作曲' : 'リファレンス';
-  const prefLabel = progression.preference === 'like' ? '好き' : '嫌い';
+  // バッジのスタイル計算
+  const sourceClass = progression.source === '自作曲' || progression.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
+  const prefClass = progression.preference === '好き' || progression.preference === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
+  const getSectionClass = (sec) => {
+    switch (sec) {
+      case 'イントロ': return 'badge-section--intro';
+      case 'Aメロ': return 'badge-section--a';
+      case 'Bメロ': return 'badge-section--b';
+      case 'Cメロ': return 'badge-section--c';
+      case 'Dメロ': return 'badge-section--d';
+      case '間奏': return 'badge-section--inter';
+      case 'アウトロ': return 'badge-section--outro';
+      default: return 'badge-section--a';
+    }
+  };
 
   return (
     <div className="chord-block">
@@ -17,7 +30,12 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
           >
             {isPlaying ? '■' : '▶'}
           </button>
-          <span className="chord-block__label">{progression.label}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="chord-block__label">{progression.id || progression.label || 'Chord Progression'}</span>
+            {progression.label && progression.label !== '新規コード進行 (from C)' && !progression.label.startsWith('新規コード進行') && (
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{progression.label}</span>
+            )}
+          </div>
           {progression.count > 1 && (
             <span className="badge badge--orange">×{progression.count}</span>
           )}
@@ -38,16 +56,15 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
       
       <div className="chord-block__meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span>{sourceLabel}</span>
-          <span>·</span>
-          <span>{prefLabel}</span>
+          <span className={`badge-tag ${sourceClass}`}>{progression.source === 'original' ? '自作曲' : progression.source}</span>
+          <span className={`badge-tag ${prefClass}`}>{progression.preference === 'like' ? '好き' : progression.preference}</span>
         </div>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-          {progression.sections?.map((sec, i) => (
-            <span key={i} className="section-chip section-chip--small">
-              {sec ? sec.replace('_', ' ').toUpperCase() : ''}
+          {progression.sections?.map((sec, i) => sec ? (
+            <span key={i} className={`badge-tag ${getSectionClass(sec)}`}>
+              {sec.replace('_', ' ')}
             </span>
-          ))}
+          ) : null)}
           <button 
             onClick={() => {
               if (window.confirm('このコード進行を削除しますか？')) {

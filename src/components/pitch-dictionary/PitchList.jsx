@@ -22,8 +22,21 @@ function degreeToValue(degreeStr) {
 function PitchPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const sourceLabel = pattern.source === 'original' ? '自作曲' : 'リファレンス';
-  const prefLabel = pattern.preference === 'like' ? '好き' : '嫌い';
+  // バッジのスタイル計算
+  const sourceClass = pattern.source === '自作曲' || pattern.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
+  const prefClass = pattern.preference === '好き' || pattern.preference === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
+  const getSectionClass = (sec) => {
+    switch (sec) {
+      case 'イントロ': return 'badge-section--intro';
+      case 'Aメロ': return 'badge-section--a';
+      case 'Bメロ': return 'badge-section--b';
+      case 'Cメロ': return 'badge-section--c';
+      case 'Dメロ': return 'badge-section--d';
+      case '間奏': return 'badge-section--inter';
+      case 'アウトロ': return 'badge-section--outro';
+      default: return 'badge-section--a';
+    }
+  };
 
   // --- グラフ描画用のデータ計算 ---
   const values = pattern.degrees.map(degreeToValue);
@@ -118,13 +131,12 @@ function PitchPatternItem({ pattern }) {
 
       <div className="dict-card__meta">
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span>{sourceLabel}</span>
-          <span>·</span>
-          <span>{prefLabel}</span>
+          <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
+          <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
         </div>
         {pattern.section && (
-          <span className="section-chip section-chip--small">
-            {pattern.section.replace('_', ' ').toUpperCase()}
+          <span className={`badge-tag ${getSectionClass(pattern.section)}`}>
+            {pattern.section.replace('_', ' ')}
           </span>
         )}
       </div>

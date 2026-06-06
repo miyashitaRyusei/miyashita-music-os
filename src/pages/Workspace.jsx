@@ -30,9 +30,26 @@ export default function Workspace() {
       showToast('⚠️ ピアノロールでノートを選択してください');
       return;
     }
-    const timestamp = Date.now();
+    
+    const song = registeredSongs.find(s => s.id === activeSongId);
+    const songTitle = song ? song.title : (midiData?.name || '未設定楽曲');
+
+    // ピッチの連番生成
+    const pitchMax = pitchPatterns.reduce((max, p) => {
+      const match = String(p.id).match(/#(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    const pitchId = `${songTitle} - ピッチ #${String(pitchMax + 1).padStart(3, '0')}`;
+
+    // リズムの連番生成
+    const rhythmMax = rhythmPatterns.reduce((max, r) => {
+      const match = String(r.id).match(/#(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    const rhythmId = `${songTitle} - リズム #${String(rhythmMax + 1).padStart(3, '0')}`;
+
     addPitchPattern({
-      id: `p_${timestamp}`,
+      id: pitchId,
       degrees: extractedPitch,
       source: stockAttributes.source,
       preference: stockAttributes.preference,
@@ -40,7 +57,7 @@ export default function Workspace() {
       songId: activeSongId,
     });
     addRhythmPattern({
-      id: `r_${timestamp}`,
+      id: rhythmId,
       timings: extractedRhythm,
       description: '自動抽出パターン',
       source: stockAttributes.source,
@@ -62,8 +79,18 @@ export default function Workspace() {
     // Cメジャーに移調
     const transposedChords = transposeChordProgression(flatChords, stockAttributes.originalKey);
     
+    const song = registeredSongs.find(s => s.id === activeSongId);
+    const songTitle = song ? song.title : (midiData?.name || '未設定楽曲');
+
+    // コードの連番生成
+    const chordMax = chordProgressions.reduce((max, c) => {
+      const match = String(c.id).match(/#(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    const chordId = `${songTitle} - コード #${String(chordMax + 1).padStart(3, '0')}`;
+
     addChordProgression({
-      id: `c_${Date.now()}`,
+      id: chordId,
       chords: transposedChords,
       label: `新規コード進行 (from ${stockAttributes.originalKey})`,
       key: 'C', // 常にCメジャー（正規化後）

@@ -5,8 +5,21 @@ import { playRhythmSequence, stopAudio } from '../../utils/audioPlayer';
 function RhythmPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const sourceLabel = pattern.source === 'original' ? '自作曲' : 'リファレンス';
-  const prefLabel = pattern.preference === 'like' ? '好き' : '嫌い';
+  // バッジのスタイル計算
+  const sourceClass = pattern.source === '自作曲' || pattern.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
+  const prefClass = pattern.preference === '好き' || pattern.preference === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
+  const getSectionClass = (sec) => {
+    switch (sec) {
+      case 'イントロ': return 'badge-section--intro';
+      case 'Aメロ': return 'badge-section--a';
+      case 'Bメロ': return 'badge-section--b';
+      case 'Cメロ': return 'badge-section--c';
+      case 'Dメロ': return 'badge-section--d';
+      case '間奏': return 'badge-section--inter';
+      case 'アウトロ': return 'badge-section--outro';
+      default: return 'badge-section--a';
+    }
+  };
 
   // --- タイムライン描画用の計算 ---
   const timings = pattern.timings || [];
@@ -54,8 +67,10 @@ function RhythmPatternItem({ pattern }) {
             {isPlaying ? '■' : '▶'}
           </span>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="dict-card__id">{pattern.description || pattern.id || 'Rhythm'}</span>
-            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{pattern.id}</span>
+            <span className="dict-card__id">{pattern.id || pattern.description || 'Rhythm'}</span>
+            {pattern.description && pattern.description !== '自動抽出パターン' && (
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{pattern.description}</span>
+            )}
           </div>
           {pattern.count > 1 && (
             <span className="badge badge--orange">×{pattern.count}</span>
@@ -104,13 +119,12 @@ function RhythmPatternItem({ pattern }) {
 
       <div className="dict-card__meta">
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span>{sourceLabel}</span>
-          <span>·</span>
-          <span>{prefLabel}</span>
+          <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
+          <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
         </div>
         {pattern.section && (
-          <span className="section-chip section-chip--small">
-            {pattern.section.replace('_', ' ').toUpperCase()}
+          <span className={`badge-tag ${getSectionClass(pattern.section)}`}>
+            {pattern.section.replace('_', ' ')}
           </span>
         )}
       </div>

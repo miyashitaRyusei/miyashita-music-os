@@ -1408,6 +1408,30 @@ ul, ol {
   border-top: 1px solid var(--border-default);
 }
 
+/* --- Dictionary Badges --- */
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.badge-source--original { background: rgba(209, 59, 199, 0.15); color: #b01da5; }
+.badge-source--reference { background: rgba(0, 229, 255, 0.15); color: #0088aa; }
+
+.badge-pref--like { background: rgba(255, 77, 77, 0.15); color: #d32f2f; }
+.badge-pref--dislike { background: rgba(77, 100, 255, 0.15); color: #303f9f; }
+
+.badge-section--intro { background: #e0f2f1; color: #00796b; }
+.badge-section--a { background: #e3f2fd; color: #1565c0; }
+.badge-section--b { background: #fff8e1; color: #f57f17; }
+.badge-section--c { background: #ffebee; color: #c62828; }
+.badge-section--d { background: #f3e5f5; color: #6a1b9a; }
+.badge-section--inter { background: #eceff1; color: #455a64; }
+.badge-section--outro { background: #efebe9; color: #4e342e; }
+
 /* --- Pitch Sparkline (SVG) --- */
 .dict-card__visual {
   flex: 1;
