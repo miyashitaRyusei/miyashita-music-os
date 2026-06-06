@@ -68,7 +68,7 @@ export default function MelodyChordAnalyzer() {
   return (
     <div>
       <CommonFilter filters={filters} setFilters={setFilters} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
       
       {/* メロディから探す */}
       <div className="workspace-section">
