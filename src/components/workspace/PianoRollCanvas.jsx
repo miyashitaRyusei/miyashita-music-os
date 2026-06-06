@@ -43,6 +43,7 @@ function isBlackKey(midi) {
 export default function PianoRollCanvas() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const scrollbarRef = useRef(null);
 
   const midiData = useAppStore((s) => s.midiData);
   const setMidiData = useAppStore((s) => s.setMidiData);
@@ -66,6 +67,13 @@ export default function PianoRollCanvas() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [playbackCursor, setPlaybackCursor] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // --- スクロールバーの同期 ---
+  useEffect(() => {
+    if (scrollbarRef.current && scrollbarRef.current.scrollLeft !== scrollX) {
+      scrollbarRef.current.scrollLeft = scrollX;
+    }
+  }, [scrollX]);
 
   // --- ピクセル → 時間/ピッチ変換 ---
   const pxToTime = useCallback((px) => {
@@ -643,6 +651,31 @@ export default function PianoRollCanvas() {
             {isPlaying ? '■ 停止' : '▶ 再生'}
           </button>
         </div>
+
+        {/* --- カスタムスクロールバー（下部に配置） --- */}
+        {midiData && (
+          <div 
+            ref={scrollbarRef}
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: LEFT_MARGIN,
+              right: 0,
+              height: '16px',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              zIndex: 20
+            }}
+            onScroll={(e) => {
+              setScrollX(e.target.scrollLeft);
+            }}
+          >
+            <div style={{ 
+              width: midiData.totalDuration * PIXELS_PER_SECOND, 
+              height: '1px' 
+            }} />
+          </div>
+        )}
       </div>
 
       {/* メタデータ入力モーダル */}
