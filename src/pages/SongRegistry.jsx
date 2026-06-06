@@ -7,7 +7,9 @@ export default function SongRegistry() {
     pitchPatterns, 
     rhythmPatterns, 
     chordProgressions, 
+    chordProgressions, 
     activeSongId,
+    setActiveSongId,
     removeSong
   } = useAppStore();
 
@@ -75,73 +77,101 @@ export default function SongRegistry() {
             const totalCount = pitchCount + rhythmCount + chordCount;
 
             return (
-              <div key={song.id} className="dict-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+              <div key={song.id} className="dict-card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
-                {/* 1. タイトル＆アーティスト領域 */}
-                <div style={{ flex: '2 1 200px', minWidth: '200px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                {/* 1. 上段：タイトル・アーティスト・アクション群 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                         {song.title}
                       </h3>
                       {activeSongId === song.id && (
                         <span className="badge badge--orange">作業中</span>
                       )}
                     </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <span style={{ fontWeight: 500 }}>{song.artist}</span>
+                      <span>•</span>
+                      <span style={{ color: 'var(--text-tertiary)' }}>{new Date(song.imported_at || song.importedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  {/* アクションボタン群 */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {activeSongId !== song.id && (
+                      <button 
+                        className="btn btn--sm btn--primary"
+                        onClick={() => setActiveSongId(song.id)}
+                      >
+                        作業場で開く
+                      </button>
+                    )}
                     <button 
                       onClick={() => {
                         if (window.confirm(`「${song.title}」を削除しますか？\n※関連するピッチ・リズム・コードの辞書データも全て削除されます。`)) {
                           removeSong(song.id);
                         }
                       }}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '1rem' }}
+                      className="btn btn--sm btn--ghost"
+                      style={{ color: '#ef4444' }}
                       title="この曲と抽出データを削除"
                     >
-                      🗑️
+                      削除
                     </button>
                   </div>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    <span>{song.artist}</span>
-                    <span>•</span>
-                    <span style={{ color: 'var(--text-tertiary)' }}>{new Date(song.imported_at || song.importedAt).toLocaleDateString()}</span>
-                  </div>
                 </div>
 
-                {/* 2. 楽曲メタデータ領域（コンパクト化） */}
-                <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'inline-block', width: '40px', color: 'var(--text-tertiary)' }}>Key:</span> 
-                    <strong style={{ color: 'var(--text-primary)' }}>{song.original_key || song.originalKey}</strong>
-                    <span style={{ margin: '0 8px', color: 'var(--border-default)' }}>|</span>
-                    <span style={{ display: 'inline-block', width: '40px', color: 'var(--text-tertiary)' }}>BPM:</span> 
-                    <strong style={{ color: 'var(--text-primary)' }}>{song.bpm}</strong>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'inline-block', width: '40px', color: 'var(--text-tertiary)' }}>Range:</span> 
-                    <strong style={{ color: 'var(--text-primary)' }}>{song.min_note || song.minNote} 〜 {song.max_note || song.maxNote}</strong>
-                  </div>
-                </div>
+                <div style={{ height: '1px', background: 'var(--border-default)' }} />
 
-                {/* 3. カウント領域 */}
-                <div style={{ flex: '1 1 240px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px' }}>
-                  <div style={{ display: 'flex', gap: '12px', background: 'var(--bg-secondary)', padding: '6px 12px', borderRadius: 'var(--radius-sm)' }}>
-                    <div style={{ textAlign: 'center', minWidth: '40px' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>PITCH</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>{pitchCount}</div>
-                    </div>
-                    <div style={{ textAlign: 'center', minWidth: '40px' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>RHYTHM</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>{rhythmCount}</div>
-                    </div>
-                    <div style={{ textAlign: 'center', minWidth: '40px' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>CHORD</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>{chordCount}</div>
-                    </div>
-                  </div>
+                {/* 2. 下段：音楽情報 ＆ 抽出数 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
                   
-                  <div style={{ textAlign: 'right', minWidth: '60px' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--accent-orange)' }}>TOTAL</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-orange)' }}>{totalCount}</div>
+                  {/* Key & BPM (強調表示) */}
+                  <div style={{ display: 'flex', gap: '24px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '2px', fontWeight: 600 }}>KEY</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {song.original_key || song.originalKey || '-'}
+                      </span>
+                    </div>
+                    <div style={{ width: '1px', background: 'var(--border-default)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '2px', fontWeight: 600 }}>BPM</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {song.bpm || '-'}
+                      </span>
+                    </div>
+                    <div style={{ width: '1px', background: 'var(--border-default)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '2px', fontWeight: 600 }}>RANGE</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {song.min_note || song.minNote || '-'} ~ {song.max_note || song.maxNote || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 抽出カウント */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ display: 'flex', gap: '16px', background: 'var(--bg-secondary)', padding: '10px 20px', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ textAlign: 'center', minWidth: '40px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '2px' }}>PITCH</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{pitchCount}</div>
+                      </div>
+                      <div style={{ textAlign: 'center', minWidth: '40px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '2px' }}>RHYTHM</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{rhythmCount}</div>
+                      </div>
+                      <div style={{ textAlign: 'center', minWidth: '40px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: '2px' }}>CHORD</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{chordCount}</div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ textAlign: 'right', minWidth: '60px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-orange)', fontWeight: 700, marginBottom: '2px' }}>TOTAL</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-orange)', lineHeight: 1 }}>{totalCount}</div>
+                    </div>
                   </div>
                 </div>
                 
