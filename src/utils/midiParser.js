@@ -72,6 +72,7 @@ export function parseMidiFile(arrayBuffer) {
   return {
     notes,
     tempo,
+    originalTempo: tempo, // 元のMIDIが持っていたテンポ
     timeSignature: timeSig,
     measureDuration,
     totalDuration,

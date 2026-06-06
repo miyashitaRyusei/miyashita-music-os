@@ -67,6 +67,21 @@ export default function PianoRollCanvas() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [playbackCursor, setPlaybackCursor] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const isHoveredRef = useRef(false);
+  const togglePlaybackRef = useRef(null);
+
+  // --- Spaceキーでの再生トグル ---
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.code === 'Space' && isHoveredRef.current) {
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+        e.preventDefault();
+        if (togglePlaybackRef.current) togglePlaybackRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // --- スクロールバーの同期 ---
   useEffect(() => {
@@ -461,9 +476,24 @@ export default function PianoRollCanvas() {
     setIsAnalyzing(true);
 
     try {
-      // 1. ユーザー入力によるBPMの上書き
+      // 1. ユーザー入力によるBPMの上書きと秒数のリスケール
+      const originalTempo = dataToProcess.originalTempo || 120;
+      const scaleRatio = originalTempo / bpm;
+
+      const scaledNotes = dataToProcess.notes.map(n => ({
+        ...n,
+        time: n.time * scaleRatio,
+        duration: n.duration * scaleRatio
+      }));
+
       // 状態を直接変異させないようにコピー
-      const dataWithTempo = { ...dataToProcess, tempo: bpm };
+      const dataWithTempo = { 
+        ...dataToProcess, 
+        tempo: bpm,
+        notes: scaledNotes,
+        measureDuration: dataToProcess.measureDuration * scaleRatio,
+        totalDuration: dataToProcess.totalDuration * scaleRatio
+      };
       
       // 元のキーでの最高音・最低音を取得
       const minNote = midiToNoteName(dataToProcess.pitchRange.min);
@@ -527,18 +557,15 @@ export default function PianoRollCanvas() {
       if (!midiData) return;
       setIsPlaying(true);
 
-      const activeSongId = useAppStore.getState().activeSongId;
-      const activeSong = useAppStore.getState().registeredSongs.find(s => s.id === activeSongId);
-      
-      // ユーザー入力のBPMがあればそれを採用し、MIDI元のBPMとの比率で再生速度を決定
-      const targetBpm = activeSong && activeSong.bpm ? activeSong.bpm : midiData.tempo;
-      const playbackRate = targetBpm / (midiData.tempo || 120);
+      // ノートのtime/durationはインポート時に現在のBPMに合わせてスケーリング済みなので等倍再生でOK
+      const playbackRate = 1.0;
 
       await playMidiNotes(midiData.notes, playbackCursor, playbackRate, () => {
         setIsPlaying(false);
       });
     }
   };
+  togglePlaybackRef.current = togglePlayback;
 
   return (
     <div className="piano-roll-wrapper">
@@ -549,7 +576,13 @@ export default function PianoRollCanvas() {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseLeave={(e) => {
+          handleMouseUp(e);
+          isHoveredRef.current = false;
+        }}
+        onMouseEnter={() => {
+          isHoveredRef.current = true;
+        }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
