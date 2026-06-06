@@ -132,13 +132,58 @@ const useAppStore = create((set, get) => ({
   // ============================================
   chordInputText: '',
   parsedChords: [],
+  selectedChordIndices: [], // フラットインデックスの配列
+  lastClickedChordIndex: null, // Shift+Click 用
+
   setChordInput: (text) => {
     set({
       chordInputText: text,
       parsedChords: parseChordInput(text),
+      selectedChordIndices: [],
+      lastClickedChordIndex: null,
     });
   },
-  clearChordInput: () => set({ chordInputText: '', parsedChords: [] }),
+  clearChordInput: () => set({ 
+    chordInputText: '', 
+    parsedChords: [], 
+    selectedChordIndices: [],
+    lastClickedChordIndex: null
+  }),
+
+  // コード選択のトグル処理
+  toggleChordSelection: (index, isShiftKey) => {
+    set((state) => {
+      let newSelection = [...state.selectedChordIndices];
+      
+      if (isShiftKey && state.lastClickedChordIndex !== null) {
+        // 範囲選択
+        const start = Math.min(index, state.lastClickedChordIndex);
+        const end = Math.max(index, state.lastClickedChordIndex);
+        
+        // startからendまでをnewSelectionに追加（重複は後で排除）
+        for (let i = start; i <= end; i++) {
+          newSelection.push(i);
+        }
+        // 重複排除してソート
+        newSelection = [...new Set(newSelection)].sort((a, b) => a - b);
+      } else {
+        // 単一選択（トグル）
+        if (newSelection.includes(index)) {
+          newSelection = newSelection.filter((i) => i !== index);
+        } else {
+          newSelection.push(index);
+          newSelection.sort((a, b) => a - b);
+        }
+      }
+      
+      return {
+        selectedChordIndices: newSelection,
+        lastClickedChordIndex: index,
+      };
+    });
+  },
+  
+  clearChordSelection: () => set({ selectedChordIndices: [], lastClickedChordIndex: null }),
 
   // ============================================
   // Stock Attributes

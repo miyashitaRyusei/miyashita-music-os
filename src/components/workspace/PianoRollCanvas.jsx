@@ -187,6 +187,7 @@ export default function PianoRollCanvas() {
     // --- コード進行の描画 (タイムライン上部) ---
     if (parsedChords && parsedChords.length > 0 && measureDuration > 0) {
       ctx.font = 'bold 12px Inter, sans-serif';
+      // 小節の区画とテキストのみ描画（コードバッジはHTMLでオーバーレイ描画する）
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -205,27 +206,6 @@ export default function PianoRollCanvas() {
           // 小節の区画をうっすら色付け
           ctx.fillStyle = 'rgba(224, 49, 49, 0.05)';
           ctx.fillRect(Math.max(LEFT_MARGIN, x), 0, Math.min(w, canvasSize.width - x), TOP_MARGIN);
-
-          // コードの背景ラベル（少し大きめ、下寄りに配置）
-          const textWidth = ctx.measureText(chord.name).width;
-          const labelWidth = Math.max(textWidth + 16, 32);
-          const centerX = x + w / 2;
-          
-          // 選択状態の判定
-          let isSelected = false;
-          if (selectedRegion) {
-            isSelected = chordTime < selectedRegion.endTime && (chordTime + timePerChord) > selectedRegion.startTime;
-          }
-
-          if (centerX >= LEFT_MARGIN && centerX <= canvasSize.width) {
-            ctx.fillStyle = isSelected ? '#2383e2' : '#e03131'; // 選択時は青、それ以外は赤
-            roundRect(ctx, centerX - labelWidth / 2, 16, labelWidth, 20, 4);
-            ctx.fill();
-
-            // コードのテキスト
-            ctx.fillStyle = '#ffffff'; // 白抜き
-            ctx.fillText(chord.name, centerX, 26);
-          }
         });
       });
     }
@@ -265,16 +245,17 @@ export default function PianoRollCanvas() {
     });
 
     // --- ドラッグ選択矩形 ---
-    // 描画順：ノートの上に描画しつつ、コードトラック(y=0)から最下部まで覆うように変更
+    // 純粋な矩形描画に戻す（コードエリアは覆わない）
     if (isDragging && dragStartData && dragEndData) {
       const rx1 = timeToX(dragStartData.time);
       const rx2 = timeToX(dragEndData.time);
-      
+      const ry1 = pitchToY(dragStartData.pitch);
+      const ry2 = pitchToY(dragEndData.pitch);
+
       const rx = Math.max(LEFT_MARGIN, Math.min(rx1, rx2));
       const rw = Math.min(Math.max(rx1, rx2) - rx, canvasSize.width - rx);
-      // y座標を0にしてコード進行エリアも覆うようにする
-      const ry = 0;
-      const rh = canvasSize.height - BOTTOM_MARGIN;
+      const ry = Math.max(TOP_MARGIN, Math.min(ry1, ry2));
+      const rh = Math.min(Math.max(ry1, ry2) - ry, canvasSize.height - BOTTOM_MARGIN - ry);
 
       if (rw > 0 && rh > 0) {
         ctx.fillStyle = COLORS.selectionFill;
@@ -290,19 +271,18 @@ export default function PianoRollCanvas() {
       const startX = Math.max(LEFT_MARGIN, timeToX(selectedRegion.startTime));
       const endX = Math.min(canvasSize.width, timeToX(selectedRegion.endTime));
       
-      if (endX > LEFT_MARGIN && startX < canvasSize.width) {
+      const ry1 = pitchToY(selectedRegion.startPitch);
+      const ry2 = pitchToY(selectedRegion.endPitch);
+      const ry = Math.max(TOP_MARGIN, Math.min(ry1, ry2));
+      const rh = Math.min(Math.max(ry1, ry2) - ry, canvasSize.height - BOTTOM_MARGIN - ry);
+
+      if (endX > LEFT_MARGIN && startX < canvasSize.width && rh > 0) {
         ctx.fillStyle = 'rgba(35, 131, 226, 0.08)';
-        // y座標を0にしてコード進行エリアも覆うようにする
-        ctx.fillRect(startX, 0, endX - startX, canvasSize.height - BOTTOM_MARGIN);
+        ctx.fillRect(startX, ry, endX - startX, rh);
         
         ctx.strokeStyle = 'rgba(35, 131, 226, 0.4)';
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(startX, 0);
-        ctx.lineTo(startX, canvasSize.height - BOTTOM_MARGIN);
-        ctx.moveTo(endX, 0);
-        ctx.lineTo(endX, canvasSize.height - BOTTOM_MARGIN);
-        ctx.stroke();
+        ctx.strokeRect(startX, ry, endX - startX, rh);
       }
     }
 
@@ -418,12 +398,6 @@ export default function PianoRollCanvas() {
     let topPitch = Math.max(dragStartData.pitch, dragEndData.pitch);
     let bottomPitch = Math.min(dragStartData.pitch, dragEndData.pitch);
 
-    // コードエリア内でドラッグした場合は「時間軸全体」を選択したとみなす（全ピッチ選択）
-    if (dragStartData.pitch >= midiData.pitchRange.max && dragEndData.pitch >= midiData.pitchRange.max) {
-      bottomPitch = 0;
-      topPitch = 127;
-    }
-
     setSelectedRegion({
       startTime: Math.max(0, startTime),
       endTime,
@@ -435,6 +409,8 @@ export default function PianoRollCanvas() {
   };
 
   const setIsAnalyzing = useAppStore((s) => s.setIsAnalyzing);
+  const selectedChordIndices = useAppStore((s) => s.selectedChordIndices);
+  const toggleChordSelection = useAppStore((s) => s.toggleChordSelection);
 
   const [pendingMidiData, setPendingMidiData] = useState(null);
 
@@ -559,6 +535,93 @@ export default function PianoRollCanvas() {
       >
         <canvas ref={canvasRef} style={{ display: 'block' }} />
         
+        {/* --- HTMLベースのコードトラック --- */}
+        {parsedChords && parsedChords.length > 0 && (
+          <div 
+            className="chord-track-overlay" 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: LEFT_MARGIN,
+              right: 0,
+              height: TOP_MARGIN,
+              overflow: 'hidden',
+              pointerEvents: 'none' // ベースはクリックを透過
+            }}
+          >
+            <div style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              height: '100%',
+              transform: `translateX(${-scrollX}px)`,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              {parsedChords.map((m, mIndex) => {
+                if (m.chords.length === 0) return null;
+                const measureDuration = midiData?.measureDuration || 2.0;
+                const timePerChord = measureDuration / m.chords.length;
+                const measureStartSeconds = (m.measure - 1) * measureDuration;
+
+                return m.chords.map((chord, cIndex) => {
+                  let flatIndex = 0;
+                  for (let i = 0; i < mIndex; i++) {
+                    flatIndex += parsedChords[i].chords.length;
+                  }
+                  flatIndex += cIndex;
+
+                  const chordTime = measureStartSeconds + cIndex * timePerChord;
+                  const x = chordTime * PIXELS_PER_SECOND;
+                  const w = timePerChord * PIXELS_PER_SECOND;
+                  
+                  const isSelected = selectedChordIndices?.includes(flatIndex);
+
+                  return (
+                    <div 
+                      key={`${mIndex}-${cIndex}`}
+                      style={{
+                        position: 'absolute',
+                        left: x,
+                        width: w,
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'auto' // ここだけクリック可能にする
+                      }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleChordSelection(flatIndex, e.shiftKey);
+                        }}
+                        style={{
+                          background: isSelected ? '#2383e2' : '#e03131',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '4px 12px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          minWidth: '32px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          transition: 'background 0.2s, transform 0.1s',
+                          userSelect: 'none'
+                        }}
+                        onMouseDown={(e) => { e.stopPropagation(); }}
+                      >
+                        {chord.name}
+                      </button>
+                    </div>
+                  );
+                });
+              })}
+            </div>
+          </div>
+        )}
+
         {/* 再生コントロール */}
         <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', gap: '8px', zIndex: 10 }}>
           <button 

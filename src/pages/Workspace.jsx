@@ -23,6 +23,8 @@ export default function Workspace() {
     rhythmPatterns,
     chordProgressions,
     selectedRegion,
+    selectedChordIndices,
+    clearChordSelection,
   } = useAppStore();
 
   const [toastMessage, setToastMessage] = useState('');
@@ -81,33 +83,25 @@ export default function Workspace() {
       return;
     }
 
-    if (!selectedRegion) {
-      showToast('⚠️ ピアノロール上でストックしたい範囲をドラッグで選択してください');
+    if (!selectedChordIndices || selectedChordIndices.length === 0) {
+      showToast('⚠️ コードトラック上のバッジをクリックして、ストックしたいコードを選択してください');
       return;
     }
 
-    const measureDuration = midiData?.measureDuration || 2.0;
     const selectedChords = [];
+    let flatIndex = 0;
     
     parsedChords.forEach((m) => {
-      const chordsInMeasure = m.chords.length;
-      if (chordsInMeasure === 0) return;
-      const timePerChord = measureDuration / chordsInMeasure;
-      const measureStartSeconds = (m.measure - 1) * measureDuration;
-      
-      m.chords.forEach((chord, i) => {
-        const chordStartTime = measureStartSeconds + i * timePerChord;
-        const chordEndTime = chordStartTime + timePerChord;
-        
-        // コードの時間が選択範囲と重なっているか判定
-        if (chordStartTime < selectedRegion.endTime && chordEndTime > selectedRegion.startTime) {
+      m.chords.forEach((chord) => {
+        if (selectedChordIndices.includes(flatIndex)) {
           selectedChords.push(chord.name);
         }
+        flatIndex++;
       });
     });
 
     if (selectedChords.length === 0) {
-      showToast('⚠️ 選択範囲にコードが含まれていません');
+      showToast('⚠️ 選択されたコードが見つかりません');
       return;
     }
     
@@ -134,6 +128,8 @@ export default function Workspace() {
       sections: [stockAttributes.section], // UPSERT対応のため配列
       songId: activeSongId,
     });
+    
+    clearChordSelection();
     showToast('✅ コード辞書にストックしました（Cメジャーに移調済）');
   };
 
