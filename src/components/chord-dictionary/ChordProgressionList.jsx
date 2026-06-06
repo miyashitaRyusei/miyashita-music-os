@@ -111,22 +111,19 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
       
       <div className="dict-card__visual" style={{ 
         padding: '24px 16px', 
-        display: 'flex', 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '8px', 
-        overflowX: 'auto', 
-        alignItems: 'center',
-        justifyContent: 'flex-start',
         background: 'var(--bg-primary)'
       }}>
         {measures.map((measure, mIndex) => (
           <div key={mIndex} style={{ 
             display: 'flex', 
-            width: '200px', // 1小節の固定幅を広げる（文字あふれ対策）
+            width: '100%', 
             height: '40px',
             border: '1px solid var(--border-strong)',
             borderRadius: '4px',
             overflow: 'hidden',
-            flexShrink: 0,
             background: 'var(--bg-secondary)',
             position: 'relative'
           }}>
