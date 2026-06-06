@@ -7,6 +7,7 @@ import RhythmAdvancedFilter from './RhythmAdvancedFilter';
 
 function RhythmPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const toggleRhythmFavorite = useAppStore((s) => s.toggleRhythmFavorite);
 
   // バッジのスタイル計算
   const sourceClass = pattern.source === '自作曲' || pattern.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
@@ -80,18 +81,30 @@ function RhythmPatternItem({ pattern }) {
             <span className="badge badge--orange">×{pattern.count}</span>
           )}
         </div>
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            if (window.confirm('このリズムパターンを削除しますか？')) {
-              useAppStore.getState().removeRhythmPattern(pattern.id);
-            }
-          }}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
-          title="削除"
-        >
-          🗑️
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleRhythmFavorite(pattern.id);
+            }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', fontSize: '1.1rem', color: pattern.is_favorite ? '#f5a623' : 'var(--text-tertiary)', lineHeight: 1 }}
+            title={pattern.is_favorite ? 'お気に入りを解除' : 'お気に入りに登録'}
+          >
+            {pattern.is_favorite ? '★' : '☆'}
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm('このリズムパターンを削除しますか？')) {
+                useAppStore.getState().removeRhythmPattern(pattern.id);
+              }
+            }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
+            title="削除"
+          >
+            🗑️
+          </button>
+        </div>
       </div>
 
       <div className="dict-card__visual" style={{ padding: '24px 16px' }}>
@@ -163,6 +176,17 @@ export default function RhythmList() {
           setAdvancedFilters={setAdvancedFilters} 
         />
       </CommonFilter>
+      {rhythmPatterns.length > 0 && (
+        <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+          <button
+            className={`btn btn--sm ${filters.favoritesOnly ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setFilters(f => ({ ...f, favoritesOnly: !f.favoritesOnly }))}
+            style={{ fontSize: '0.85rem' }}
+          >
+            ★ お気に入りのみ{filters.favoritesOnly ? ' (表示中)' : ''}
+          </button>
+        </div>
+      )}
       <div className="dict-grid">
         {filteredItems.length > 0 ? (
           filteredItems.map((pattern, i) => (

@@ -9,6 +9,7 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
     section: '',
     songId: '',
     sortBy: 'newest', // 'newest', 'oldest', 'most_used'
+    favoritesOnly: false, // お気に入りのみ
   });
 
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -36,6 +37,11 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
 
   const filteredItems = useMemo(() => {
     let result = [...items];
+
+    // お気に入りのみ表示
+    if (filters.favoritesOnly) {
+      result = result.filter(item => item.is_favorite === true);
+    }
 
     // AND条件でのフィルタリング
     if (filters.source) {

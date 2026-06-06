@@ -253,6 +253,16 @@ const useAppStore = create((set, get) => ({
       set((state) => ({ pitchPatterns: state.pitchPatterns.filter((p) => p.id !== id) }));
     }
   },
+  togglePitchFavorite: async (id) => {
+    const state = get();
+    const pattern = state.pitchPatterns.find((p) => p.id === id);
+    if (!pattern) return;
+    const newVal = !pattern.is_favorite;
+    const { error } = await supabase.from('pitch_patterns').update({ is_favorite: newVal }).eq('id', id);
+    if (!error) {
+      set((s) => ({ pitchPatterns: s.pitchPatterns.map((p) => p.id === id ? { ...p, is_favorite: newVal } : p) }));
+    }
+  },
 
   // ============================================
   // Rhythm Dictionary
@@ -297,6 +307,16 @@ const useAppStore = create((set, get) => ({
       set((state) => ({ rhythmPatterns: state.rhythmPatterns.filter((p) => p.id !== id) }));
     }
   },
+  toggleRhythmFavorite: async (id) => {
+    const state = get();
+    const pattern = state.rhythmPatterns.find((p) => p.id === id);
+    if (!pattern) return;
+    const newVal = !pattern.is_favorite;
+    const { error } = await supabase.from('rhythm_patterns').update({ is_favorite: newVal }).eq('id', id);
+    if (!error) {
+      set((s) => ({ rhythmPatterns: s.rhythmPatterns.map((p) => p.id === id ? { ...p, is_favorite: newVal } : p) }));
+    }
+  },
 
   // ============================================
   // Chord Dictionary
@@ -338,6 +358,16 @@ const useAppStore = create((set, get) => ({
     const { error } = await supabase.from('chord_progressions').delete().eq('id', id);
     if (!error) {
       set((state) => ({ chordProgressions: state.chordProgressions.filter((p) => p.id !== id) }));
+    }
+  },
+  toggleChordFavorite: async (id) => {
+    const state = get();
+    const prog = state.chordProgressions.find((p) => p.id === id);
+    if (!prog) return;
+    const newVal = !prog.is_favorite;
+    const { error } = await supabase.from('chord_progressions').update({ is_favorite: newVal }).eq('id', id);
+    if (!error) {
+      set((s) => ({ chordProgressions: s.chordProgressions.map((p) => p.id === id ? { ...p, is_favorite: newVal } : p) }));
     }
   },
 

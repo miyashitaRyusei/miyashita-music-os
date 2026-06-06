@@ -6,6 +6,7 @@ import CommonFilter from '../common/CommonFilter';
 import ChordAdvancedFilter from './ChordAdvancedFilter';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
+  const toggleChordFavorite = useAppStore((s) => s.toggleChordFavorite);
   // バッジのスタイル計算
   const sourceClass = progression.source === '自作曲' || progression.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
   const prefClass = progression.preference === '好き' || progression.preference === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
@@ -68,6 +69,16 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
               {sec.replace('_', ' ')}
             </span>
           ) : null)}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleChordFavorite(progression.id);
+            }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', fontSize: '1.1rem', color: progression.is_favorite ? '#f5a623' : 'var(--text-tertiary)', lineHeight: 1 }}
+            title={progression.is_favorite ? 'お気に入りを解除' : 'お気に入りに登録'}
+          >
+            {progression.is_favorite ? '★' : '☆'}
+          </button>
           <button 
             onClick={() => {
               if (window.confirm('このコード進行を削除しますか？')) {
@@ -96,10 +107,8 @@ export default function ChordProgressionList() {
       setPlayingId(null);
       return;
     }
-
     stopAudio();
     setPlayingId(progression.id);
-    
     await playChordProgression(progression.chords || [], () => {
       setPlayingId((current) => current === progression.id ? null : current);
     });
@@ -113,6 +122,17 @@ export default function ChordProgressionList() {
           setAdvancedFilters={setAdvancedFilters} 
         />
       </CommonFilter>
+      {chordProgressions.length > 0 && (
+        <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+          <button
+            className={`btn btn--sm ${filters.favoritesOnly ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setFilters(f => ({ ...f, favoritesOnly: !f.favoritesOnly }))}
+            style={{ fontSize: '0.85rem' }}
+          >
+            ★ お気に入りのみ{filters.favoritesOnly ? ' (表示中)' : ''}
+          </button>
+        </div>
+      )}
       <div className="stagger">
         {filteredItems.length > 0 ? (
           filteredItems.map((prog) => (
