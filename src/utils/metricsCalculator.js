@@ -23,7 +23,13 @@ function calculateEntropy(counts) {
   return entropy;
 }
 
-export function calculateMetrics(pitchPatterns, rhythmPatterns) {
+export function calculateMetrics({
+  pitchPatterns = [],
+  rhythmPatterns = [],
+  chordProgressions = [],
+  melodyChordRelations = [],
+  registeredSongs = []
+}) {
   // グループ分け（自作曲、好き、嫌い）
   const groups = {
     original: { pitch: [], rhythm: [] },
@@ -153,20 +159,133 @@ export function calculateMetrics(pitchPatterns, rhythmPatterns) {
     };
   };
 
-  const origScores = calcGroupScores(groups.original);
-  const likeScores = calcGroupScores(groups.like);
-  const dislikeScores = calcGroupScores(groups.dislike);
-
   const radarChartData = [
-    { axis: '跳躍進行率', 自作曲: origScores.leapRate, 好き: likeScores.leapRate, 嫌い: dislikeScores.leapRate },
-    { axis: 'シンコペーション率', 自作曲: origScores.syncRate, 好き: likeScores.syncRate, 嫌い: dislikeScores.syncRate },
-    { axis: '音符密度', 自作曲: origScores.density, 好き: likeScores.density, 嫌い: dislikeScores.density },
-    { axis: 'フレーズ上昇率', 自作曲: origScores.riseRate, 好き: likeScores.riseRate, 嫌い: dislikeScores.riseRate },
-    { axis: '音程の予測不能度', 自作曲: origScores.pEntropyScore, 好き: likeScores.pEntropyScore, 嫌い: dislikeScores.pEntropyScore },
-    { axis: '音価の予測不能度', 自作曲: origScores.rEntropyScore, 好き: likeScores.rEntropyScore, 嫌い: dislikeScores.rEntropyScore },
-    { axis: 'スケール制限度', 自作曲: origScores.scaleScore, 好き: likeScores.scaleScore, 嫌い: dislikeScores.scaleScore },
-    { axis: 'アウフタクト発生率', 自作曲: origScores.anacrusisRate, 好き: likeScores.anacrusisRate, 嫌い: dislikeScores.anacrusisRate },
+    { axis: '跳躍進行率', 好き: calcGroupScores(groups.like).leapRate, 嫌い: calcGroupScores(groups.dislike).leapRate, 自作曲: calcGroupScores(groups.original).leapRate },
+    { axis: 'シンコペーション率', 好き: calcGroupScores(groups.like).syncRate, 嫌い: calcGroupScores(groups.dislike).syncRate, 自作曲: calcGroupScores(groups.original).syncRate },
+    { axis: '音符密度', 好き: calcGroupScores(groups.like).density, 嫌い: calcGroupScores(groups.dislike).density, 自作曲: calcGroupScores(groups.original).density },
+    { axis: 'フレーズ上昇率', 好き: calcGroupScores(groups.like).riseRate, 嫌い: calcGroupScores(groups.dislike).riseRate, 自作曲: calcGroupScores(groups.original).riseRate },
+    { axis: '音程予測不能度', 好き: calcGroupScores(groups.like).pEntropyScore, 嫌い: calcGroupScores(groups.dislike).pEntropyScore, 自作曲: calcGroupScores(groups.original).pEntropyScore },
+    { axis: '音価予測不能度', 好き: calcGroupScores(groups.like).rEntropyScore, 嫌い: calcGroupScores(groups.dislike).rEntropyScore, 自作曲: calcGroupScores(groups.original).rEntropyScore },
+    { axis: 'スケール制限度', 好き: calcGroupScores(groups.like).scaleScore, 嫌い: calcGroupScores(groups.dislike).scaleScore, 自作曲: calcGroupScores(groups.original).scaleScore },
+    { axis: 'アウフタクト発生率', 好き: calcGroupScores(groups.like).anacrusisRate, 嫌い: calcGroupScores(groups.dislike).anacrusisRate, 自作曲: calcGroupScores(groups.original).anacrusisRate },
   ];
 
-  return { histogramData, radarChartData };
+  // ========== セクション分布計算 ==========
+  const sectionCounts = {};
+  const countSection = (item) => {
+    if (!item.sections) return;
+    item.sections.forEach(sec => {
+      if (!sec) return;
+      const name = sec.replace('_', ' ');
+      sectionCounts[name] = (sectionCounts[name] || 0) + 1;
+    });
+  };
+  pitchPatterns.forEach(countSection);
+  rhythmPatterns.forEach(countSection);
+  chordProgressions.forEach(countSection);
+
+  const sectionData = Object.entries(sectionCounts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // ========== コード統計計算 ==========
+  const chordFrequencies = {};
+  let totalChords = 0;
+  let nonDiatonicCount = 0;
+
+  chordProgressions.forEach(prog => {
+    if (!prog.chords) return;
+    prog.chords.forEach(chordObj => {
+      const name = chordObj.chord;
+      if (!name) return;
+      chordFrequencies[name] = (chordFrequencies[name] || 0) + 1;
+      totalChords++;
+      // 簡易ノンダイアトニック判定（#やbが含まれるルート音を調外とみなす。実際はキーによるが目安として）
+      if (name.includes('#') || (name.includes('b') && !name.includes('dim'))) {
+        nonDiatonicCount++;
+      }
+    });
+  });
+
+  const topChords = Object.entries(chordFrequencies)
+    .map(([chord, count]) => ({ chord, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const nonDiatonicRate = totalChords > 0 ? Math.round((nonDiatonicCount / totalChords) * 100) : 0;
+
+  // ========== 楽曲BPM・キー統計 ==========
+  const bpmCounts = {};
+  const keyCounts = {};
+  registeredSongs.forEach(song => {
+    if (song.bpm) {
+      const bucket = Math.floor(song.bpm / 10) * 10;
+      const label = `${bucket}s`;
+      bpmCounts[label] = (bpmCounts[label] || 0) + 1;
+    }
+    if (song.originalKey) {
+      keyCounts[song.originalKey] = (keyCounts[song.originalKey] || 0) + 1;
+    }
+  });
+
+  const bpmData = Object.entries(bpmCounts)
+    .map(([range, count]) => ({ range, count }))
+    .sort((a, b) => parseInt(a.range) - parseInt(b.range));
+
+  const topKeys = Object.entries(keyCounts)
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // ========== メロディ×コード ヒートマップ計算 ==========
+  const degreeOrder = ['R', 'm2', 'M2', 'm3', 'M3', 'P4', '#4/b5', 'P5', 'm6', 'M6', 'm7', 'M7', '9', '11', '13'];
+  // 基本的なコード種別にまとめるためのマッピング関数
+  const getChordType = (chordName) => {
+    if (!chordName) return 'Other';
+    if (chordName.includes('mM7')) return 'mM7';
+    if (chordName.includes('m7')) return 'm7';
+    if (chordName.includes('M7')) return 'M7';
+    if (chordName.includes('7')) return '7th';
+    if (chordName.includes('dim')) return 'dim';
+    if (chordName.includes('aug')) return 'aug';
+    if (chordName.includes('sus4')) return 'sus4';
+    if (chordName.includes('m')) return 'Minor';
+    return 'Major';
+  };
+
+  const chordTypesOrder = ['Major', 'Minor', 'M7', 'm7', '7th', 'sus4', 'dim', 'aug'];
+  const heatmapCounts = {};
+  let totalRelations = 0;
+
+  melodyChordRelations.forEach(rel => {
+    if (!rel.chordName || !rel.melodyDegree) return;
+    const type = getChordType(rel.chordName);
+    const deg = rel.melodyDegree;
+    if (!heatmapCounts[type]) heatmapCounts[type] = {};
+    heatmapCounts[type][deg] = (heatmapCounts[type][deg] || 0) + 1;
+    totalRelations++;
+  });
+
+  // ヒートマップ用の配列を生成（縦: ChordType, 横: Degree）
+  const heatmapData = chordTypesOrder.map(cType => {
+    const row = { chordType: cType };
+    degreeOrder.forEach(deg => {
+      row[deg] = heatmapCounts[cType] ? (heatmapCounts[cType][deg] || 0) : 0;
+    });
+    return row;
+  });
+
+  return {
+    histogramData,
+    radarChartData,
+    sectionData,
+    topChords,
+    nonDiatonicRate,
+    bpmData,
+    topKeys,
+    heatmapData,
+    degreeOrder,
+    chordTypesOrder,
+    totalRelations
+  };
 }

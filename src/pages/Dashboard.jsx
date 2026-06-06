@@ -3,16 +3,19 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell
 } from 'recharts';
 import useAppStore from '../store/useAppStore';
 import { generateAIPrompt } from '../utils/exportPrompt';
 import { calculateMetrics } from '../utils/metricsCalculator';
 
 const COLORS = {
-  original: '#d13bc7', // ネオンパープル (自作曲)
-  like: '#00e5ff',     // シアン (好き)
-  dislike: '#4d4d4d',  // ダークグレー (嫌い)
+  original: '#facc15', // イエロー系 (自作曲) - 赤と青に重なっても埋もれない色
+  like: '#ff4d4f',     // レッド系 (好き)
+  dislike: '#3b82f6',  // ブルー系 (嫌い)
 };
+
+const PIE_COLORS = ['#facc15', '#ff4d4f', '#3b82f6', '#10b981', '#f5a623', '#8b5cf6'];
 
 function StatsCards({ statsSummary }) {
   const items = [
@@ -38,8 +41,10 @@ function RadarChartPanel({ radarChartData }) {
   return (
     <div className="card">
       <div className="card__header">
-        <span className="card__title">メロディ特徴レーダー</span>
-        <span className="card__subtitle">8軸比較: 自作曲 vs 好き vs 嫌い</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="card__title">メロディ特徴レーダー</span>
+          <span className="card__subtitle">8軸比較: 自作曲 vs 好き vs 嫌い</span>
+        </div>
       </div>
       <ResponsiveContainer width="100%" height={400}>
         <RadarChart data={radarChartData} outerRadius="70%">
@@ -99,8 +104,10 @@ function HistogramPanel({ histogramData }) {
   return (
     <div className="card">
       <div className="card__header">
-        <span className="card__title">ピッチクラス分布</span>
-        <span className="card__subtitle">全体に占める各音程の割合（%）</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="card__title">ピッチクラス分布</span>
+          <span className="card__subtitle">全体に占める各音程の割合（%）</span>
+        </div>
       </div>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart data={histogramData} barGap={2} barSize={14}>
@@ -136,8 +143,166 @@ function HistogramPanel({ histogramData }) {
   );
 }
 
+function SectionDistributionPanel({ sectionData }) {
+  return (
+    <div className="card">
+      <div className="card__header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="card__title">セクション分布</span>
+          <span className="card__subtitle">登録されているパターンの割合</span>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={250}>
+        <PieChart>
+          <Pie
+            data={sectionData}
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={2}
+            dataKey="value"
+          >
+            {sectionData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip 
+            formatter={(value) => `${value}件`}
+            contentStyle={{ borderRadius: '8px', border: '1px solid #e9e9e7', fontSize: '12px' }}
+          />
+          <Legend wrapperStyle={{ fontSize: '11px', color: '#787774' }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function ChordStatsPanel({ topChords, nonDiatonicRate }) {
+  return (
+    <div className="card">
+      <div className="card__header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="card__title">コード進行の特徴</span>
+          <span className="card__subtitle">よく使われるコードとノンダイアトニック率</span>
+        </div>
+      </div>
+      <div style={{ marginTop: '16px' }}>
+        <h4 style={{ fontSize: '12px', color: '#787774', marginBottom: '8px' }}>頻出コード トップ5</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {topChords.map((chord, i) => (
+            <div key={chord.chord} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafaf9', padding: '8px 12px', borderRadius: '6px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{i + 1}. {chord.chord}</span>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>{chord.count}回</span>
+            </div>
+          ))}
+          {topChords.length === 0 && <div style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>データがありません</div>}
+        </div>
+      </div>
+      <div style={{ marginTop: '24px' }}>
+        <h4 style={{ fontSize: '12px', color: '#787774', marginBottom: '8px' }}>ノンダイアトニック率 (目安)</h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ flex: 1, background: '#e9e9e7', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: `${nonDiatonicRate}%`, background: COLORS.like, height: '100%' }} />
+          </div>
+          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{nonDiatonicRate}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SongTrendsPanel({ bpmData, topKeys }) {
+  return (
+    <div className="card">
+      <div className="card__header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="card__title">楽曲トレンド (BPM / Key)</span>
+          <span className="card__subtitle">登録された楽曲データから分析</span>
+        </div>
+      </div>
+      <div style={{ marginTop: '16px', display: 'flex', gap: '24px' }}>
+        <div style={{ flex: 1 }}>
+          <h4 style={{ fontSize: '12px', color: '#787774', marginBottom: '8px' }}>頻出キー トップ3</h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {topKeys.slice(0, 3).map((k) => (
+              <span key={k.key} className="badge badge--orange">{k.key} ({k.count})</span>
+            ))}
+            {topKeys.length === 0 && <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>データなし</span>}
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: '24px' }}>
+        <h4 style={{ fontSize: '12px', color: '#787774', marginBottom: '8px' }}>BPM分布</h4>
+        <ResponsiveContainer width="100%" height={150}>
+          <BarChart data={bpmData}>
+            <XAxis dataKey="range" tick={{ fontSize: 10, fill: '#b4b4b0' }} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={{ borderRadius: '6px', fontSize: '11px' }} />
+            <Bar dataKey="count" fill={COLORS.original} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function MelodyChordHeatmapPanel({ heatmapData, degreeOrder, totalRelations }) {
+  const maxCount = Math.max(1, ...heatmapData.flatMap(row => degreeOrder.map(deg => row[deg] || 0)));
+  
+  return (
+    <div className="card grid-full" style={{ overflowX: 'auto' }}>
+      <div className="card__header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="card__title">メロディ × コード ヒートマップ</span>
+          <span className="card__subtitle">コード種別ごとに使われやすいメロディの度数 (総データ数: {totalRelations})</span>
+        </div>
+      </div>
+      <div style={{ marginTop: '16px', minWidth: '800px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `80px repeat(${degreeOrder.length}, 1fr)`, gap: '2px', marginBottom: '4px' }}>
+          <div></div>
+          {degreeOrder.map(deg => (
+            <div key={deg} style={{ textAlign: 'center', fontSize: '10px', color: '#787774', fontWeight: 'bold' }}>{deg}</div>
+          ))}
+        </div>
+        {heatmapData.map((row) => (
+          <div key={row.chordType} style={{ display: 'grid', gridTemplateColumns: `80px repeat(${degreeOrder.length}, 1fr)`, gap: '2px', marginBottom: '2px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '8px' }}>
+              {row.chordType}
+            </div>
+            {degreeOrder.map(deg => {
+              const val = row[deg] || 0;
+              const intensity = val === 0 ? 0 : 0.1 + (val / maxCount) * 0.9;
+              return (
+                <div 
+                  key={deg} 
+                  title={`${row.chordType} - ${deg}: ${val}回`}
+                  style={{ 
+                    height: '24px', 
+                    background: `rgba(0, 229, 255, ${intensity})`,
+                    borderRadius: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    color: intensity > 0.5 ? '#000' : 'transparent',
+                    transition: 'all 0.2s ease',
+                    cursor: 'default'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#000'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = intensity > 0.5 ? '#000' : 'transparent'; }}
+                >
+                  {val > 0 ? val : ''}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }) {
   const [copied, setCopied] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleCopyPrompt = () => {
     const promptText = generateAIPrompt({
@@ -165,14 +330,24 @@ function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }
 
   return (
     <div className="card grid-full">
-      <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div 
+        className="card__header" 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          cursor: 'pointer',
+          marginBottom: isOpen ? 'var(--spacing-lg)' : '0'
+        }} 
+        onClick={() => setIsOpen(!isOpen)}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="card__title">指標リファレンス ＆ エクスポート</span>
+          <span className="card__title" style={{ userSelect: 'none' }}>指標リファレンス ＆ エクスポート {isOpen ? '▼' : '▶'}</span>
           <span className="badge badge--blue">LLM連携</span>
         </div>
         <button 
-          className="btn btn--lg btn--primary" 
-          onClick={handleCopyPrompt}
+          className="btn btn--sm btn--primary" 
+          onClick={(e) => { e.stopPropagation(); handleCopyPrompt(); }}
           style={{
             background: copied ? 'var(--accent-blue)' : 'var(--bg-primary)',
             color: copied ? '#fff' : 'var(--text-primary)',
@@ -183,24 +358,30 @@ function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }
           {copied ? '✅ コピー完了！' : '🤖 AIプロンプトをコピー'}
         </button>
       </div>
-      <div className="metrics-ref-list">
-        {metrics.map((m) => (
-          <div key={m.name} className="metrics-ref-item">
-            <span className="metrics-ref-term">{m.name}</span>
-            <span className="metrics-ref-desc">{m.desc}</span>
-          </div>
-        ))}
-      </div>
+      {isOpen && (
+        <div className="metrics-ref-list" style={{ marginTop: '16px' }}>
+          {metrics.map((m) => (
+            <div key={m.name} className="metrics-ref-item">
+              <span className="metrics-ref-term">{m.name}</span>
+              <span className="metrics-ref-desc">{m.desc}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function Dashboard() {
-  const { pitchPatterns, rhythmPatterns, chordProgressions } = useAppStore();
+  const { pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, registeredSongs } = useAppStore();
 
-  const { histogramData, radarChartData } = useMemo(() => {
-    return calculateMetrics(pitchPatterns, rhythmPatterns);
-  }, [pitchPatterns, rhythmPatterns]);
+  const { 
+    histogramData, radarChartData, sectionData, 
+    topChords, nonDiatonicRate, bpmData, topKeys,
+    heatmapData, degreeOrder, totalRelations
+  } = useMemo(() => {
+    return calculateMetrics({ pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, registeredSongs });
+  }, [pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, registeredSongs]);
 
   const statsSummary = {
     totalPitchPatterns: pitchPatterns.length,
@@ -218,16 +399,28 @@ export default function Dashboard() {
 
       <StatsCards statsSummary={statsSummary} />
 
-      <div className="grid-2 dashboard-charts">
+      <div className="grid-2 dashboard-charts" style={{ marginTop: '24px' }}>
         <RadarChartPanel radarChartData={radarChartData} />
         <HistogramPanel histogramData={histogramData} />
       </div>
 
-      <MetricsReferencePanel 
-        pitchPatterns={pitchPatterns} 
-        rhythmPatterns={rhythmPatterns} 
-        radarChartData={radarChartData}
-      />
+      <div className="grid-3" style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+        <SectionDistributionPanel sectionData={sectionData} />
+        <ChordStatsPanel topChords={topChords} nonDiatonicRate={nonDiatonicRate} />
+        <SongTrendsPanel bpmData={bpmData} topKeys={topKeys} />
+      </div>
+
+      <div style={{ marginTop: '24px' }}>
+        <MelodyChordHeatmapPanel heatmapData={heatmapData} degreeOrder={degreeOrder} totalRelations={totalRelations} />
+      </div>
+
+      <div style={{ marginTop: '24px' }}>
+        <MetricsReferencePanel 
+          pitchPatterns={pitchPatterns} 
+          rhythmPatterns={rhythmPatterns} 
+          radarChartData={radarChartData}
+        />
+      </div>
     </div>
   );
 }
