@@ -116,7 +116,7 @@ export default function MelodyChordAnalyzer() {
       </div>
 
       {/* コードから探す */}
-      <div className="workspace-section">
+      <div className="workspace-section" style={{ marginTop: 0 }}>
         <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--text-primary)' }}>
           🎹 コードからメロディ音を探す
         </h3>
