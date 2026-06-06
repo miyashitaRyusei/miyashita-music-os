@@ -22,6 +22,7 @@ export default function Workspace() {
     pitchPatterns,
     rhythmPatterns,
     chordProgressions,
+    selectedRegion,
   } = useAppStore();
 
   const [toastMessage, setToastMessage] = useState('');
@@ -79,11 +80,39 @@ export default function Workspace() {
       showToast('⚠️ コードを入力してください');
       return;
     }
-    // parsedChords からコード名のフラットな配列を作成
-    const flatChords = parsedChords.flatMap((m) => m.chords.map((c) => c.name));
+
+    if (!selectedRegion) {
+      showToast('⚠️ ピアノロール上でストックしたい範囲をドラッグで選択してください');
+      return;
+    }
+
+    const measureDuration = midiData?.measureDuration || 2.0;
+    const selectedChords = [];
+    
+    parsedChords.forEach((m) => {
+      const chordsInMeasure = m.chords.length;
+      if (chordsInMeasure === 0) return;
+      const timePerChord = measureDuration / chordsInMeasure;
+      const measureStartSeconds = (m.measure - 1) * measureDuration;
+      
+      m.chords.forEach((chord, i) => {
+        const chordStartTime = measureStartSeconds + i * timePerChord;
+        const chordEndTime = chordStartTime + timePerChord;
+        
+        // コードの時間が選択範囲と重なっているか判定
+        if (chordStartTime < selectedRegion.endTime && chordEndTime > selectedRegion.startTime) {
+          selectedChords.push(chord.name);
+        }
+      });
+    });
+
+    if (selectedChords.length === 0) {
+      showToast('⚠️ 選択範囲にコードが含まれていません');
+      return;
+    }
     
     // Cメジャーに移調
-    const transposedChords = transposeChordProgression(flatChords, stockAttributes.originalKey);
+    const transposedChords = transposeChordProgression(selectedChords, stockAttributes.originalKey);
     
     const song = registeredSongs.find(s => s.id === activeSongId);
     const songTitle = song ? song.title : (midiData?.name || '未設定楽曲');
@@ -172,7 +201,7 @@ export default function Workspace() {
     });
 
     if (relationCount > 0) {
-      showToast(`✅ ${relationCount}件の「メロディ×コード」ペアをストックしました`);
+      showToast(`✅ タイムライン全体から ${relationCount} 件のノンダイアトニック関係を抽出しました`);
     } else {
       showToast('⚠️ コードの切り替わりタイミングで鳴っているメロディが見つかりませんでした');
     }
@@ -216,8 +245,8 @@ export default function Workspace() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
           <span className="workspace-section__label">コード進行入力（小節は「|」で区切る）</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button className="btn btn--outline" onClick={handleStockMelodyChordRelations}>
-              🎵 メロディ×コード関係性を抽出
+            <button className="btn btn--secondary" onClick={handleStockMelodyChordRelations}>
+              ♫ タイムライン全体からメロディ×コード関係性を一括抽出
             </button>
             <button className="btn btn--primary" onClick={handleStockChord}>
               🎹 コード辞書へストック

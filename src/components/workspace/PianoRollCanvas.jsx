@@ -48,6 +48,7 @@ export default function PianoRollCanvas() {
   const setMidiData = useAppStore((s) => s.setMidiData);
   const selectedNotes = useAppStore((s) => s.selectedNotes);
   const setSelectedRegion = useAppStore((s) => s.setSelectedRegion);
+  const parsedChords = useAppStore((s) => s.parsedChords);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPx, setDragStartPx] = useState(null);
@@ -173,6 +174,35 @@ export default function PianoRollCanvas() {
         ctx.textAlign = 'center';
         ctx.fillText(`${m + 1}`, x, TOP_MARGIN - 6);
       }
+    }
+
+    // --- コード進行の描画 (タイムライン上部) ---
+    if (parsedChords && parsedChords.length > 0 && measureDuration > 0) {
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+
+      parsedChords.forEach((m) => {
+        const measureStartSeconds = (m.measure - 1) * measureDuration;
+        const timePerChord = measureDuration / Math.max(1, m.chords.length);
+        
+        m.chords.forEach((chord, i) => {
+          const chordTime = measureStartSeconds + i * timePerChord;
+          const x = timeToX(chordTime);
+          
+          if (x < LEFT_MARGIN || x > canvasSize.width) return;
+
+          // コードの背景ラベル
+          const textWidth = ctx.measureText(chord.name).width;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          roundRect(ctx, x + 2, TOP_MARGIN - 20, textWidth + 8, 16, 4);
+          ctx.fill();
+
+          // コードのテキスト
+          ctx.fillStyle = '#e03131'; // 赤
+          ctx.fillText(chord.name, x + 6, TOP_MARGIN - 12);
+        });
+      });
     }
 
     // --- ピッチラベル（左端） ---
