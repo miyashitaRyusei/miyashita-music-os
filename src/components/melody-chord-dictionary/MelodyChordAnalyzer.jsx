@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
@@ -58,7 +58,7 @@ export default function MelodyChordAnalyzer() {
   }, [filteredItems, selectedChord]);
 
   // 初回ロード時などに有効なコードをセットする
-  useMemo(() => {
+  useEffect(() => {
     if (availableChords.length > 0 && !availableChords.includes(selectedChord)) {
       setSelectedChord(availableChords[0]);
     }
@@ -173,6 +173,7 @@ export default function MelodyChordAnalyzer() {
                   </div>
                   <div style={{ width: '40px', textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     {Math.round(item.percentage)}%
+                  </div>
                 </div>
               );
             })}
