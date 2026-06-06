@@ -21,6 +21,8 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
       case 'アウトロ': return 'badge-section--outro';
       default: return 'badge-section--a';
     }
+  };
+
   // ダイアトニックコード（Cメジャー基準）の判定
   const diatonicChords = ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 'CM7', 'Dm7', 'Em7', 'FM7', 'G7', 'Am7', 'Bm7b5'];
   const isNonDiatonic = (chord) => {
