@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { playPitchSequence, stopAudio } from '../../utils/audioPlayer';
+import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
+import CommonFilter from '../common/CommonFilter';
 
 // 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
 function degreeToValue(degreeStr) {
@@ -147,27 +149,25 @@ function PitchPatternItem({ pattern }) {
   );
 }
 
-export default function PitchList({ searchQuery = '' }) {
+export default function PitchList() {
   const pitchPatterns = useAppStore((s) => s.pitchPatterns);
-
-  const filtered = pitchPatterns.filter((prog) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return prog.degrees.join(' ').toLowerCase().includes(q);
-  });
+  const { filters, setFilters, filteredItems } = useDictionaryFilter(pitchPatterns);
 
   return (
-    <div className="dict-grid">
-      {filtered.length > 0 ? (
-        filtered.map((pattern, i) => (
-          <PitchPatternItem key={pattern.id || i} pattern={pattern} />
-        ))
-      ) : (
-        <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-          <span className="empty-state__icon">♫</span>
-          <span className="empty-state__text">データがありません</span>
-        </div>
-      )}
+    <div>
+      <CommonFilter filters={filters} setFilters={setFilters} />
+      <div className="dict-grid">
+        {filteredItems.length > 0 ? (
+          filteredItems.map((pattern, i) => (
+            <PitchPatternItem key={pattern.id || i} pattern={pattern} />
+          ))
+        ) : (
+          <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+            <span className="empty-state__icon">♫</span>
+            <span className="empty-state__text">データがありません</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

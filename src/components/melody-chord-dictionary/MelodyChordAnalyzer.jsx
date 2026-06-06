@@ -1,17 +1,20 @@
 import { useState, useMemo } from 'react';
 import useAppStore from '../../store/useAppStore';
+import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
+import CommonFilter from '../common/CommonFilter';
 
 const ALL_DEGREES = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
 
 export default function MelodyChordAnalyzer() {
   const relations = useAppStore((s) => s.melodyChordRelations) || [];
+  const { filters, setFilters, filteredItems } = useDictionaryFilter(relations);
 
   const [selectedDegree, setSelectedDegree] = useState('ド');
   const [selectedChord, setSelectedChord] = useState('C');
 
   // --- メロディから探す ---
   const degreeStats = useMemo(() => {
-    const filtered = relations.filter(r => r.melody_degree === selectedDegree || r.melodyDegree === selectedDegree);
+    const filtered = filteredItems.filter(r => r.melody_degree === selectedDegree || r.melodyDegree === selectedDegree);
     const total = filtered.reduce((sum, r) => sum + (r.count || 1), 0);
     
     const groups = {};
@@ -25,20 +28,20 @@ export default function MelodyChordAnalyzer() {
       .sort((a, b) => b.count - a.count);
 
     return { total, sorted };
-  }, [relations, selectedDegree]);
+  }, [filteredItems, selectedDegree]);
 
   // --- コードから探す ---
   // 存在するすべてのコードを抽出して選択肢にする
   const availableChords = useMemo(() => {
     const chords = new Set();
-    relations.forEach(r => {
+    filteredItems.forEach(r => {
       if (r.chord_name || r.chordName) chords.add(r.chord_name || r.chordName);
     });
     return Array.from(chords).sort();
-  }, [relations]);
+  }, [filteredItems]);
 
   const chordStats = useMemo(() => {
-    const filtered = relations.filter(r => (r.chord_name === selectedChord) || (r.chordName === selectedChord));
+    const filtered = filteredItems.filter(r => (r.chord_name === selectedChord) || (r.chordName === selectedChord));
     const total = filtered.reduce((sum, r) => sum + (r.count || 1), 0);
     
     const groups = {};
@@ -52,7 +55,7 @@ export default function MelodyChordAnalyzer() {
       .sort((a, b) => b.count - a.count);
 
     return { total, sorted };
-  }, [relations, selectedChord]);
+  }, [filteredItems, selectedChord]);
 
   // 初回ロード時などに有効なコードをセットする
   useMemo(() => {
@@ -63,7 +66,9 @@ export default function MelodyChordAnalyzer() {
 
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+    <div>
+      <CommonFilter filters={filters} setFilters={setFilters} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
       
       {/* メロディから探す */}
       <div className="workspace-section">
@@ -160,6 +165,7 @@ export default function MelodyChordAnalyzer() {
         </div>
       </div>
 
+      </div>
     </div>
   );
 }

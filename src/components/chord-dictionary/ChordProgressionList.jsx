@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { playChordProgression, stopAudio } from '../../utils/audioPlayer';
+import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
+import CommonFilter from '../common/CommonFilter';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
   // バッジのスタイル計算
@@ -82,19 +84,10 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
   );
 }
 
-export default function ChordProgressionList({ searchQuery = '' }) {
+export default function ChordProgressionList() {
   const chordProgressions = useAppStore((s) => s.chordProgressions) || [];
+  const { filters, setFilters, filteredItems } = useDictionaryFilter(chordProgressions);
   const [playingId, setPlayingId] = useState(null);
-  
-  const filtered = chordProgressions.filter((prog) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (prog.label || '').toLowerCase().includes(q) ||
-      (prog.chords || []).join(' ').toLowerCase().includes(q) ||
-      (prog.key || '').toLowerCase().includes(q)
-    );
-  });
 
   const handlePlayToggle = async (progression) => {
     if (playingId === progression.id) {
@@ -112,37 +105,25 @@ export default function ChordProgressionList({ searchQuery = '' }) {
   };
 
   return (
-    <div className="stagger">
-      {filtered.length > 0 ? (
-        filtered.map((prog) => (
-          <ChordProgressionItem 
-            key={prog.id} 
-            progression={prog} 
-            isPlaying={playingId === prog.id}
-            onTogglePlay={() => handlePlayToggle(prog)}
-          />
-        ))
-      ) : (
-        <div className="empty-state">
-          <span className="empty-state__icon">♬</span>
-          <span className="empty-state__text">データがありません</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function ChordSearchFilter({ value, onChange }) {
-  return (
-    <div className="search-bar">
-      <span className="search-bar__icon">⌕</span>
-      <input
-        className="search-bar__input"
-        type="text"
-        placeholder="コード進行を検索（例: Am, 小室, ツーファイブ）"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+    <div>
+      <CommonFilter filters={filters} setFilters={setFilters} />
+      <div className="stagger">
+        {filteredItems.length > 0 ? (
+          filteredItems.map((prog) => (
+            <ChordProgressionItem 
+              key={prog.id} 
+              progression={prog} 
+              isPlaying={playingId === prog.id}
+              onTogglePlay={() => handlePlayToggle(prog)}
+            />
+          ))
+        ) : (
+          <div className="empty-state">
+            <span className="empty-state__icon">♬</span>
+            <span className="empty-state__text">データがありません</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

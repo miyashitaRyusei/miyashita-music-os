@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { playRhythmSequence, stopAudio } from '../../utils/audioPlayer';
+import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
+import CommonFilter from '../common/CommonFilter';
 
 function RhythmPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -132,28 +134,25 @@ function RhythmPatternItem({ pattern }) {
   );
 }
 
-export default function RhythmList({ searchQuery = '' }) {
+export default function RhythmList() {
   const rhythmPatterns = useAppStore((s) => s.rhythmPatterns);
-
-  const filtered = rhythmPatterns.filter((prog) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (prog.description || '').toLowerCase().includes(q) || 
-           (prog.id || '').toLowerCase().includes(q);
-  });
+  const { filters, setFilters, filteredItems } = useDictionaryFilter(rhythmPatterns);
 
   return (
-    <div className="dict-grid">
-      {filtered.length > 0 ? (
-        filtered.map((pattern, i) => (
-          <RhythmPatternItem key={pattern.id || i} pattern={pattern} />
-        ))
-      ) : (
-        <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-          <span className="empty-state__icon">⏱</span>
-          <span className="empty-state__text">データがありません</span>
-        </div>
-      )}
+    <div>
+      <CommonFilter filters={filters} setFilters={setFilters} />
+      <div className="dict-grid">
+        {filteredItems.length > 0 ? (
+          filteredItems.map((pattern, i) => (
+            <RhythmPatternItem key={pattern.id || i} pattern={pattern} />
+          ))
+        ) : (
+          <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+            <span className="empty-state__icon">⏱</span>
+            <span className="empty-state__text">データがありません</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
