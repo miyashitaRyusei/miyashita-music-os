@@ -227,61 +227,77 @@ export default function Workspace() {
   };
 
   return (
-    <div className="page animate-fade-in">
+    <div className="page-full animate-fade-in">
       <div className="page__header">
         <h1 className="page__title">作業場エディタ</h1>
         <p className="page__subtitle">MIDIの読み込み・フレーズの切り出し・コードの手入力</p>
       </div>
 
-      {/* ピアノロールコンテナ */}
-      <div className="workspace-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span className="workspace-section__label">ピアノロール（ドラッグ＆ドロップでMIDI読み込み）</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="workspace-attr-label" style={{ marginBottom: 0 }}>Original Key</span>
-              <select 
-                className="input" 
-                style={{ width: '80px', padding: '4px 8px' }}
-                value={stockAttributes.originalKey} 
-                onChange={(e) => useAppStore.getState().setStockOriginalKey(e.target.value)}
-              >
-                {['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'].map(k => (
-                  <option key={k} value={k}>{k}</option>
-                ))}
-              </select>
+      <div className="workspace-layout">
+        {/* === 左カラム：メインエディタ === */}
+        <div className="workspace-main">
+          {/* ピアノロールコンテナ */}
+          <div className="workspace-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span className="workspace-section__label">ピアノロール（ドラッグ＆ドロップでMIDI読み込み）</span>
             </div>
-            <button className="btn btn--primary" onClick={handleStockPitchAndRhythm}>
-              ♫ ピッチ＆リズム辞書へストック
-            </button>
+            <PianoRollCanvas />
+          </div>
+
+          {/* コード入力エリア */}
+          <div className="workspace-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <span className="workspace-section__label" style={{ marginBottom: 0 }}>コード進行</span>
+              <button className="btn btn--sm btn--secondary" onClick={() => setIsImportModalOpen(true)}>
+                🤖 外部テキストから自動パース
+              </button>
+            </div>
+            <ChordInputArea />
           </div>
         </div>
-        <PianoRollCanvas />
-      </div>
 
-      {/* コード入力エリア */}
-      <div className="workspace-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
-          <span className="workspace-section__label">コード進行入力（小節は「|」で区切る）</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button className="btn btn--secondary" onClick={() => setIsImportModalOpen(true)}>
-              🤖 外部テキストから自動パース
-            </button>
-            <button className="btn btn--secondary" onClick={handleStockMelodyChordRelations}>
-              ♫ タイムライン全体からメロディ×コード関係性を一括抽出
-            </button>
-            <button className="btn btn--primary" onClick={handleStockChord}>
-              🎹 コード辞書へストック
-            </button>
+        {/* === 右カラム：ストックステーション（インスペクター） === */}
+        <div className="workspace-sidebar">
+          <div className="workspace-section" style={{ position: 'sticky', top: '24px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '24px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-default)', paddingBottom: '12px' }}>
+              ストック・パネル
+            </h3>
+
+            {/* グローバル属性 */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="workspace-attr-label" style={{ marginBottom: 0, fontWeight: 600 }}>Original Key</span>
+                <select 
+                  className="input" 
+                  style={{ width: '80px', padding: '4px 8px' }}
+                  value={stockAttributes.originalKey} 
+                  onChange={(e) => useAppStore.getState().setStockOriginalKey(e.target.value)}
+                >
+                  {['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'].map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 詳細属性 (StockControls) */}
+            <StockControls />
+
+            {/* アクションボタン群 */}
+            <div className="workspace-sidebar-actions" style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleStockPitchAndRhythm}>
+                ♫ ピッチ＆リズムをストック
+              </button>
+              <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleStockChord}>
+                🎹 選択コード進行をストック
+              </button>
+              <div style={{ height: '1px', background: 'var(--border-default)', margin: '8px 0' }} />
+              <button className="btn btn--secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '12px' }} onClick={handleStockMelodyChordRelations}>
+                ♫ メロディ×コード関係を一括抽出
+              </button>
+            </div>
           </div>
         </div>
-        <ChordInputArea />
-      </div>
-
-      {/* 属性設定 */}
-      <div className="workspace-section">
-        <span className="workspace-section__label">ストック属性の設定</span>
-        <StockControls />
       </div>
 
       {/* トースト通知 */}
