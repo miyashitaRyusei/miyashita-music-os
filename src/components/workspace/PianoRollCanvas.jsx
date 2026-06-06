@@ -55,6 +55,13 @@ export default function PianoRollCanvas() {
   const [dragStartData, setDragStartData] = useState(null); // { time, pitch }
   const [dragEndData, setDragEndData] = useState(null);     // { time, pitch }
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
+  
+  // マウスが画面外で離されたときのフェイルセーフ
+  useEffect(() => {
+    const handleGlobalMouseUp = () => setIsDragging(false);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
   const [scrollX, setScrollX] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [playbackCursor, setPlaybackCursor] = useState(0);
@@ -199,19 +206,19 @@ export default function PianoRollCanvas() {
           ctx.fillStyle = 'rgba(224, 49, 49, 0.05)';
           ctx.fillRect(Math.max(LEFT_MARGIN, x), 0, Math.min(w, canvasSize.width - x), TOP_MARGIN);
 
-          // コードの背景ラベル（少し大きめ）
+          // コードの背景ラベル（少し大きめ、下寄りに配置）
           const textWidth = ctx.measureText(chord.name).width;
           const labelWidth = Math.max(textWidth + 16, 32);
           const centerX = x + w / 2;
           
           if (centerX >= LEFT_MARGIN && centerX <= canvasSize.width) {
             ctx.fillStyle = '#e03131'; // 赤
-            roundRect(ctx, centerX - labelWidth / 2, 4, labelWidth, 16, 4);
+            roundRect(ctx, centerX - labelWidth / 2, 16, labelWidth, 20, 4);
             ctx.fill();
 
             // コードのテキスト
             ctx.fillStyle = '#ffffff'; // 白抜き
-            ctx.fillText(chord.name, centerX, 12);
+            ctx.fillText(chord.name, centerX, 26);
           }
         });
       });
@@ -252,16 +259,16 @@ export default function PianoRollCanvas() {
     });
 
     // --- ドラッグ選択矩形 ---
+    // 描画順：ノートの上に描画しつつ、コードトラック(y=0)から最下部まで覆うように変更
     if (isDragging && dragStartData && dragEndData) {
       const rx1 = timeToX(dragStartData.time);
       const rx2 = timeToX(dragEndData.time);
-      const ry1 = pitchToY(dragStartData.pitch);
-      const ry2 = pitchToY(dragEndData.pitch);
-
+      
       const rx = Math.max(LEFT_MARGIN, Math.min(rx1, rx2));
       const rw = Math.min(Math.max(rx1, rx2) - rx, canvasSize.width - rx);
-      const ry = Math.max(TOP_MARGIN, Math.min(ry1, ry2));
-      const rh = Math.min(Math.max(ry1, ry2) - ry, canvasSize.height - BOTTOM_MARGIN - ry);
+      // y座標を0にしてコード進行エリアも覆うようにする
+      const ry = 0;
+      const rh = canvasSize.height - BOTTOM_MARGIN;
 
       if (rw > 0 && rh > 0) {
         ctx.fillStyle = COLORS.selectionFill;
@@ -279,14 +286,15 @@ export default function PianoRollCanvas() {
       
       if (endX > LEFT_MARGIN && startX < canvasSize.width) {
         ctx.fillStyle = 'rgba(35, 131, 226, 0.08)';
-        ctx.fillRect(startX, TOP_MARGIN, endX - startX, canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN);
+        // y座標を0にしてコード進行エリアも覆うようにする
+        ctx.fillRect(startX, 0, endX - startX, canvasSize.height - BOTTOM_MARGIN);
         
         ctx.strokeStyle = 'rgba(35, 131, 226, 0.4)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(startX, TOP_MARGIN);
+        ctx.moveTo(startX, 0);
         ctx.lineTo(startX, canvasSize.height - BOTTOM_MARGIN);
-        ctx.moveTo(endX, TOP_MARGIN);
+        ctx.moveTo(endX, 0);
         ctx.lineTo(endX, canvasSize.height - BOTTOM_MARGIN);
         ctx.stroke();
       }
@@ -388,11 +396,12 @@ export default function PianoRollCanvas() {
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     
-    // ドラッグせずにクリックだけした場合は再生カーソルをセット
+    // ドラッグせずにクリックだけした場合は再生カーソルをセットし、選択を解除
     const startX = timeToX(dragStartData.time);
     if (Math.abs(x - startX) < 5) {
       const clickedTime = pxToTime(x);
       setPlaybackCursor(Math.max(0, clickedTime));
+      setSelectedRegion(null);
       setIsDragging(false);
       return;
     }
