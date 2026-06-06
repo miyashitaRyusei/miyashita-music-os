@@ -79,18 +79,18 @@ export function toRelativeTime(noteTime, baseDownbeat) {
 }
 
 /**
- * 選択されたノート群からピッチ（階名）配列を抽出する。
+ * 選択されたノート群からピッチ（MIDI番号と時間）配列を抽出する。
  * ノートは時間の早い順にソートされている前提。
  *
  * @param {Array<Object>} notes - 選択されたノート配列 [{ midi, time, duration, ... }]
- * @returns {Array<string>} 階名の配列 ['Do', 'Re', 'Mi', ...]
+ * @returns {Array<Object>} { midi, time } の配列
  */
 export function extractPitchArray(notes) {
   if (!notes || notes.length === 0) return [];
 
-  // 時間順にソートし、階名に変換
+  // 時間順にソートし、MIDI番号と時間のオブジェクトを返す
   const sorted = [...notes].sort((a, b) => a.time - b.time || a.midi - b.midi);
-  return sorted.map((note) => midiToDegreeName(note.midi));
+  return sorted.map((note) => ({ midi: note.midi, time: note.time }));
 }
 
 /**
@@ -134,8 +134,9 @@ export function extractRhythmArray(notes, measureDuration) {
     const relTime = toRelativeTime(note.time, baseDownbeat);
     return {
       relativeTime: relTime,
+      absoluteTime: note.time,
       duration: note.duration,
-      degreeName: midiToDegreeName(note.midi),
+      midi: note.midi,
       // UIのパーセント配置用に、1小節を1.0とした割合も保持
       normalizedTime: measureDuration > 0 ? relTime / measureDuration : 0,
       normalizedDuration: measureDuration > 0 ? note.duration / measureDuration : 0,

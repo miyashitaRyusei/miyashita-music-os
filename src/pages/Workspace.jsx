@@ -3,8 +3,8 @@ import useAppStore from '../store/useAppStore';
 import ChordInputArea from '../components/workspace/ChordInputArea';
 import PianoRollCanvas from '../components/workspace/PianoRollCanvas';
 import StockControls from '../components/workspace/StockControls';
-import { transposeChordProgression, transposeChord } from '../utils/chordTransposer';
-import { midiToPitchClassKatakana } from '../utils/noteUtils';
+import { transposeChordProgression, transposeChord, getEffectiveKeyAtTime, getEffectiveKeyForMeasure, getTransposeOffset } from '../utils/chordTransposer';
+import { midiToPitchClassKatakana, midiToDegreeName } from '../utils/noteUtils';
 
 export default function Workspace() {
   const {
@@ -57,9 +57,26 @@ export default function Workspace() {
     }, 0);
     const rhythmId = `${songTitle} - リズム #${String(rhythmMax + 1).padStart(3, '0')}`;
 
+    // 転調を考慮したピッチのCメジャー移調
+    const transposedPitch = extractedPitch.map(note => {
+      const effectiveKey = getEffectiveKeyAtTime(note.time, midiData.measureDuration, parsedChords, stockAttributes.originalKey);
+      const offset = getTransposeOffset(effectiveKey);
+      return midiToDegreeName(note.midi - offset);
+    });
+
+    // 転調を考慮したリズムのCメジャー移調
+    const transposedRhythm = extractedRhythm.map(note => {
+      const effectiveKey = getEffectiveKeyAtTime(note.absoluteTime, midiData.measureDuration, parsedChords, stockAttributes.originalKey);
+      const offset = getTransposeOffset(effectiveKey);
+      return {
+        ...note,
+        degreeName: midiToDegreeName(note.midi - offset)
+      };
+    });
+
     addPitchPattern({
       id: pitchId,
-      degrees: extractedPitch,
+      degrees: transposedPitch,
       source: stockAttributes.source,
       preference: stockAttributes.preference,
       section: stockAttributes.section,
@@ -67,7 +84,7 @@ export default function Workspace() {
     });
     addRhythmPattern({
       id: rhythmId,
-      timings: extractedRhythm,
+      timings: transposedRhythm,
       description: '自動抽出パターン',
       source: stockAttributes.source,
       preference: stockAttributes.preference,
@@ -91,10 +108,11 @@ export default function Workspace() {
     const selectedChords = [];
     let flatIndex = 0;
     
-    parsedChords.forEach((m) => {
+    parsedChords.forEach((m, mIndex) => {
+      const measureKey = getEffectiveKeyForMeasure(mIndex, parsedChords, stockAttributes.originalKey);
       m.chords.forEach((chord) => {
         if (selectedChordIndices.includes(flatIndex)) {
-          selectedChords.push(chord.name);
+          selectedChords.push(transposeChord(chord.name, measureKey));
         }
         flatIndex++;
       });
@@ -105,8 +123,8 @@ export default function Workspace() {
       return;
     }
     
-    // Cメジャーに移調
-    const transposedChords = transposeChordProgression(selectedChords, stockAttributes.originalKey);
+    // 移調済みのコードをそのまま使用
+    const transposedChords = selectedChords;
     
     const song = registeredSongs.find(s => s.id === activeSongId);
     const songTitle = song ? song.title : (midiData?.name || '未設定楽曲');
@@ -169,17 +187,14 @@ export default function Workspace() {
           // 最も高いピッチを選ぶ
           const highestNote = soundingNotes.reduce((prev, current) => (prev.midi > current.midi) ? prev : current);
           
-          // ノートのピッチをCメジャー基準の階名に変換
-          // (一度Cメジャーへの差分を計算してから階名にする)
-          const keyOffsets = {
-            'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4,
-            'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
-          };
-          const offset = keyOffsets[originalKey] || 0;
-          const transposedMidi = highestNote.midi - offset;
-          const degree = midiToPitchClassKatakana(transposedMidi);
-          
-          const transposedChord = transposeChord(chord.name, originalKey);
+          // 転調を考慮したキーの計算
+          // ここは m (parsedChordsの要素) と i (和音のインデックス) のループ内
+          // m.measure は 1-indexed なので、インデックスは m.measure - 1
+          const effectiveKey = getEffectiveKeyForMeasure(m.measure - 1, parsedChords, originalKey);
+          const offset = getTransposeOffset(effectiveKey);
+
+          const transposedMelodyDegree = midiToPitchClassKatakana(highestNote.midi - offset);
+          const transposedChord = transposeChord(chord.name, effectiveKey);
           
           const relationId = `${songTitle}-${m.measure}-${i}-${Date.now()}`;
 
@@ -187,7 +202,7 @@ export default function Workspace() {
             addMelodyChordRelation({
               id: relationId,
               songId: activeSongId,
-              melodyDegree: degree,
+              melodyDegree: transposedMelodyDegree,
               chordName: transposedChord,
               source: stockAttributes.source,
               preference: stockAttributes.preference,

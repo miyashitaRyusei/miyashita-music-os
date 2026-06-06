@@ -40,12 +40,78 @@ export function transposeChord(chordName, originalKey) {
 }
 
 /**
- * コード進行配列をすべてCメジャー基準に移調する
+ * コード進行の配列を指定したキーからCメジャー基準に移調する。
  * 
- * @param {Array<string>} chords - コードの配列 (例: ['D', 'G', 'A'])
+ * @param {Array<string>} chords - コード進行の配列 (例: ['D', 'A', 'Bm', 'G'])
  * @param {string} originalKey - 元のキー (例: 'D')
- * @returns {Array<string>} 移調されたコードの配列
+ * @returns {Array<string>} 移調後のコード進行配列
  */
 export function transposeChordProgression(chords, originalKey) {
   return chords.map(chord => transposeChord(chord, originalKey));
+}
+
+/**
+ * 現在のキーに対して、[Key:+1] などの転調マーカーを適用した新しいキーを算出する。
+ * 
+ * @param {string} currentKey - 現在のキー (例: 'C')
+ * @param {string} keyChangeStr - 転調マーカー (例: '+1', '-2')
+ * @returns {string} 転調後のキー
+ */
+export function getEffectiveKey(currentKey, keyChangeStr) {
+  if (!keyChangeStr || !currentKey) return currentKey;
+  
+  const change = parseInt(keyChangeStr.replace('+', ''), 10);
+  if (isNaN(change)) return currentKey;
+
+  const currentIndex = ROOT_TO_INDEX[currentKey];
+  if (currentIndex === undefined) return currentKey;
+
+  let newIndex = (currentIndex + change) % 12;
+  if (newIndex < 0) newIndex += 12;
+
+  return INDEX_TO_ROOT[newIndex] || currentKey;
+}
+
+/**
+ * 指定した小節インデックスにおける有効なキーを計算する。
+ * 
+ * @param {number} measureIndex - 0始まりの小節インデックス
+ * @param {Array<Object>} parsedChords - パース済みのコード配列
+ * @param {string} originalKey - 曲の元のキー
+ * @returns {string} その小節での有効なキー
+ */
+export function getEffectiveKeyForMeasure(measureIndex, parsedChords, originalKey) {
+  let currentKey = originalKey;
+  for (let i = 0; i <= measureIndex; i++) {
+    const m = parsedChords[i];
+    if (m && m.keyChange) {
+      currentKey = getEffectiveKey(currentKey, m.keyChange);
+    }
+  }
+  return currentKey;
+}
+
+/**
+ * 指定した時間における有効なキーを計算する。
+ * 
+ * @param {number} time - 時間（秒）
+ * @param {number} measureDuration - 1小節の長さ（秒）
+ * @param {Array<Object>} parsedChords - パース済みのコード配列
+ * @param {string} originalKey - 曲の元のキー
+ * @returns {string} その時間での有効なキー
+ */
+export function getEffectiveKeyAtTime(time, measureDuration, parsedChords, originalKey) {
+  if (!measureDuration || measureDuration <= 0) return originalKey;
+  const measureIndex = Math.floor(time / measureDuration);
+  return getEffectiveKeyForMeasure(measureIndex, parsedChords, originalKey);
+}
+
+/**
+ * 指定したキーからCメジャーへの移調オフセット（半音数）を取得する。
+ * 
+ * @param {string} key - キー (例: 'D')
+ * @returns {number} オフセット値
+ */
+export function getTransposeOffset(key) {
+  return ROOT_TO_INDEX[key] || 0;
 }
