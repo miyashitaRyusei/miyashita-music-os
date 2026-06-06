@@ -1,4 +1,5 @@
-import lamejs from 'lamejs';
+// lamejs is loaded globally via CDN in index.html to avoid Vite strict mode issues
+// const lamejs = window.lamejs;
 
 /**
  * 任意の音声ファイル（WAV等）を読み込み、ブラウザのAudioContextを利用してPCMにデコードし、
@@ -26,7 +27,7 @@ export async function encodeAudioToMp3(file, onProgress) {
         const sampleRate = audioBuffer.sampleRate;
         const kbps = 128; // 視聴用としては十分な品質
         
-        const mp3encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, kbps);
+        const mp3encoder = new window.lamejs.Mp3Encoder(numChannels, sampleRate, kbps);
         const mp3Data = [];
         
         // チャンネルごとのデータをFloat32 (-1.0 ~ 1.0) から Int16 (-32768 ~ 32767) に変換
