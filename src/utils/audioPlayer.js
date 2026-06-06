@@ -1,7 +1,8 @@
 import * as Tone from 'tone';
 
-// シングルトンとしてシンセサイザーを保持
+// シングルトンとしてシンセサイザーとタイマーを保持
 let synth = null;
+let currentTimeoutId = null;
 
 /**
  * Tone.js の初期化（ユーザー操作時に呼ぶ必要がある）
@@ -22,9 +23,16 @@ async function initTone() {
 export function stopAudio() {
   if (synth) {
     synth.releaseAll();
+    synth.dispose(); // スケジュールされたイベントをキャンセルするために破棄
+    synth = null;
   }
   Tone.Transport.stop();
   Tone.Transport.cancel(0);
+  
+  if (currentTimeoutId) {
+    clearTimeout(currentTimeoutId);
+    currentTimeoutId = null;
+  }
 }
 
 const DEGREE_TO_NOTE = {
@@ -56,7 +64,10 @@ export async function playPitchSequence(degrees, onEnd) {
 
   // 全て鳴り終わった後に状態をリセットするためのコールバック
   if (onEnd) {
-    setTimeout(onEnd, degrees.length * stepTime * 1000 + 200);
+    currentTimeoutId = setTimeout(() => {
+      onEnd();
+      currentTimeoutId = null;
+    }, degrees.length * stepTime * 1000 + 200);
   }
 }
 
@@ -91,7 +102,10 @@ export async function playRhythmSequence(timings, onEnd) {
   });
 
   if (onEnd) {
-    setTimeout(onEnd, (maxEndTime - now) * 1000 + 200);
+    currentTimeoutId = setTimeout(() => {
+      onEnd();
+      currentTimeoutId = null;
+    }, (maxEndTime - now) * 1000 + 200);
   }
 }
 
@@ -125,7 +139,10 @@ export async function playMidiNotes(notes, startSeconds = 0, onEnd) {
   });
 
   if (onEnd && maxEndTime > 0) {
-    setTimeout(onEnd, (maxEndTime - now) * 1000 + 200);
+    currentTimeoutId = setTimeout(() => {
+      onEnd();
+      currentTimeoutId = null;
+    }, (maxEndTime - now) * 1000 + 200);
   }
 }
 
@@ -170,6 +187,9 @@ export async function playChordProgression(chords, onEnd) {
   });
 
   if (onEnd) {
-    setTimeout(onEnd, chords.length * stepTime * 1000 + 200);
+    currentTimeoutId = setTimeout(() => {
+      onEnd();
+      currentTimeoutId = null;
+    }, chords.length * stepTime * 1000 + 200);
   }
 }
