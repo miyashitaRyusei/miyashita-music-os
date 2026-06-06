@@ -128,15 +128,14 @@ function PitchPatternItem({ pattern }) {
               <g key={i}>
                 <circle cx={getX(i)} cy={getY(val)} r="4" 
                   className="pitch-sparkline__point" 
-                  fill={color} 
+                  style={{ stroke: color }}
                 />
                 <text 
                   x={getX(i)} 
                   y={getY(val) + (val >= (maxVal + minVal) / 2 ? 16 : -10)} // 上下位置の調整
                   className={`pitch-sparkline__label ${isNonDiatonic ? 'pitch-sparkline__label--nondiatonic' : ''}`}
                   textAnchor="middle"
-                  fill={color}
-                  fontWeight={isNonDiatonic ? 'bold' : 'normal'}
+                  style={{ fill: color, fontWeight: isNonDiatonic ? 'bold' : 'normal' }}
                 >
                   {degreeStr}
                 </text>
