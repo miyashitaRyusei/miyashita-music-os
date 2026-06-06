@@ -50,8 +50,8 @@ const DEGREE_TO_NOTE = {
  * ピッチパターンの再生（リズムを持たず、全て8分音符で再生）
  */
 export async function playPitchSequence(degrees, onEnd) {
-  await initTone();
   stopAudio();
+  await initTone();
   
   const now = Tone.now();
   const stepTime = 0.25; // 8分音符相当（120BPM）
@@ -75,8 +75,8 @@ export async function playPitchSequence(degrees, onEnd) {
  * リズムパターンの再生（ピッチを持たず、全てC4で再生）
  */
 export async function playRhythmSequence(timings, onEnd) {
-  await initTone();
   stopAudio();
+  await initTone();
 
   const now = Tone.now();
   const measureSeconds = 2.0; // 120BPMの4/4拍子は1小節2秒
@@ -116,8 +116,8 @@ export async function playRhythmSequence(timings, onEnd) {
  * @param {Function} onEnd - 再生完了時のコールバック
  */
 export async function playMidiNotes(notes, startSeconds = 0, onEnd) {
-  await initTone();
   stopAudio();
+  await initTone();
 
   const now = Tone.now();
   let maxEndTime = 0;
@@ -150,8 +150,8 @@ export async function playMidiNotes(notes, startSeconds = 0, onEnd) {
  * コード進行の再生（Tone.PolySynth と @tonaljs/tonal を使用）
  */
 export async function playChordProgression(chords, onEnd) {
-  await initTone();
   stopAudio();
+  await initTone();
   
   // @tonaljs/tonal の動的インポート（初回再生時にロード）
   const { Chord, Note } = await import('@tonaljs/tonal');
