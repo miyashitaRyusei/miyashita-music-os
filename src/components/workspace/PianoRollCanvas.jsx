@@ -278,7 +278,7 @@ export default function PianoRollCanvas() {
       ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     }
 
-  }, [canvasSize, midiData, scrollX, selectedNotes, isDragging, dragStartPx, dragEndPx, playbackCursor, isDragOver]);
+  }, [canvasSize, midiData, scrollX, selectedNotes, isDragging, dragStartPx, dragEndPx, playbackCursor, isDragOver, parsedChords]);
 
   // --- 空の状態の描画 ---
   function drawEmptyState(ctx, size) {
