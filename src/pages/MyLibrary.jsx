@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { encodeAudioToMp3 } from '../utils/audioEncoder';
 import { uploadSongToLibrary, fetchLibrarySongs, deleteLibrarySong } from '../utils/libraryApi';
-import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, MusicNoteIcon } from '@heroicons/react/24/outline';
+import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 
 export default function MyLibrary() {
   const [songs, setSongs] = useState([]);
@@ -172,7 +172,7 @@ export default function MyLibrary() {
       
       <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-          <MusicNoteIcon className="icon" style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+          <MusicalNoteIcon className="icon" style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
           マイライブラリ
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>
