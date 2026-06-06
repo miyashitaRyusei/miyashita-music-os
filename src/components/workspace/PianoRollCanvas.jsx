@@ -47,6 +47,7 @@ export default function PianoRollCanvas() {
   const midiData = useAppStore((s) => s.midiData);
   const setMidiData = useAppStore((s) => s.setMidiData);
   const selectedNotes = useAppStore((s) => s.selectedNotes);
+  const selectedRegion = useAppStore((s) => s.selectedRegion);
   const setSelectedRegion = useAppStore((s) => s.setSelectedRegion);
   const parsedChords = useAppStore((s) => s.parsedChords);
 
@@ -178,8 +179,8 @@ export default function PianoRollCanvas() {
 
     // --- コード進行の描画 (タイムライン上部) ---
     if (parsedChords && parsedChords.length > 0 && measureDuration > 0) {
-      ctx.font = '12px Inter, sans-serif';
-      ctx.textAlign = 'left';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
       parsedChords.forEach((m) => {
@@ -189,18 +190,29 @@ export default function PianoRollCanvas() {
         m.chords.forEach((chord, i) => {
           const chordTime = measureStartSeconds + i * timePerChord;
           const x = timeToX(chordTime);
+          const nextX = timeToX(chordTime + timePerChord);
+          const w = nextX - x;
           
-          if (x < LEFT_MARGIN || x > canvasSize.width) return;
+          if (x + w < LEFT_MARGIN || x > canvasSize.width) return;
 
-          // コードの背景ラベル
+          // 小節の区画をうっすら色付け
+          ctx.fillStyle = 'rgba(224, 49, 49, 0.05)';
+          ctx.fillRect(Math.max(LEFT_MARGIN, x), 0, Math.min(w, canvasSize.width - x), TOP_MARGIN);
+
+          // コードの背景ラベル（少し大きめ）
           const textWidth = ctx.measureText(chord.name).width;
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-          roundRect(ctx, x + 2, TOP_MARGIN - 20, textWidth + 8, 16, 4);
-          ctx.fill();
+          const labelWidth = Math.max(textWidth + 16, 32);
+          const centerX = x + w / 2;
+          
+          if (centerX >= LEFT_MARGIN && centerX <= canvasSize.width) {
+            ctx.fillStyle = '#e03131'; // 赤
+            roundRect(ctx, centerX - labelWidth / 2, 4, labelWidth, 16, 4);
+            ctx.fill();
 
-          // コードのテキスト
-          ctx.fillStyle = '#e03131'; // 赤
-          ctx.fillText(chord.name, x + 6, TOP_MARGIN - 12);
+            // コードのテキスト
+            ctx.fillStyle = '#ffffff'; // 白抜き
+            ctx.fillText(chord.name, centerX, 12);
+          }
         });
       });
     }
@@ -253,6 +265,26 @@ export default function PianoRollCanvas() {
       ctx.strokeRect(rx, ry, rw, rh);
     }
 
+    // --- 選択領域の持続描画 (ドラッグ完了後) ---
+    if (!isDragging && selectedRegion) {
+      const startX = Math.max(LEFT_MARGIN, timeToX(selectedRegion.startTime));
+      const endX = Math.min(canvasSize.width, timeToX(selectedRegion.endTime));
+      
+      if (endX > LEFT_MARGIN && startX < canvasSize.width) {
+        ctx.fillStyle = 'rgba(35, 131, 226, 0.08)';
+        ctx.fillRect(startX, TOP_MARGIN, endX - startX, canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN);
+        
+        ctx.strokeStyle = 'rgba(35, 131, 226, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(startX, TOP_MARGIN);
+        ctx.lineTo(startX, canvasSize.height - BOTTOM_MARGIN);
+        ctx.moveTo(endX, TOP_MARGIN);
+        ctx.lineTo(endX, canvasSize.height - BOTTOM_MARGIN);
+        ctx.stroke();
+      }
+    }
+
     // --- 再生カーソルの描画 ---
     const cursorX = timeToX(playbackCursor);
     if (cursorX >= LEFT_MARGIN && cursorX <= canvasSize.width) {
@@ -278,7 +310,7 @@ export default function PianoRollCanvas() {
       ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     }
 
-  }, [canvasSize, midiData, scrollX, selectedNotes, isDragging, dragStartPx, dragEndPx, playbackCursor, isDragOver, parsedChords]);
+  }, [canvasSize, midiData, scrollX, selectedNotes, selectedRegion, isDragging, dragStartPx, dragEndPx, playbackCursor, isDragOver, parsedChords]);
 
   // --- 空の状態の描画 ---
   function drawEmptyState(ctx, size) {
@@ -320,9 +352,20 @@ export default function PianoRollCanvas() {
   const handleMouseMove = (e) => {
     if (!isDragging || !midiData) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.max(LEFT_MARGIN, Math.min(e.clientX - rect.left, canvasSize.width));
+    const clientX = e.clientX - rect.left;
+    const x = Math.max(LEFT_MARGIN, Math.min(clientX, canvasSize.width));
     const y = Math.max(TOP_MARGIN, Math.min(e.clientY - rect.top, canvasSize.height - BOTTOM_MARGIN));
     setDragEndPx({ x, y });
+
+    // エッジスクロール (画面端でのドラッグでスクロール)
+    const edgeThreshold = 40;
+    const scrollSpeed = 8;
+    if (clientX > canvasSize.width - edgeThreshold) {
+      const maxScroll = Math.max(0, midiData.totalDuration * PIXELS_PER_SECOND - (canvasSize.width - LEFT_MARGIN));
+      setScrollX((prev) => Math.min(maxScroll, prev + scrollSpeed));
+    } else if (clientX < LEFT_MARGIN + edgeThreshold) {
+      setScrollX((prev) => Math.max(0, prev - scrollSpeed));
+    }
   };
 
   const handleMouseUp = (e) => {
