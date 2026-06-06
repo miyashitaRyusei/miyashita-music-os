@@ -71,6 +71,10 @@ function PitchPatternItem({ pattern }) {
   };
 
   const points = values.map((val, i) => `${getX(i)},${getY(val)}`).join(' ');
+  // 下に塗りつぶすためのポリゴン座標（線の終点から下へ、始点の下へ、そして始点へ戻る）
+  const polygonPoints = values.length > 0 
+    ? `${points} ${getX(values.length - 1)},${SVG_HEIGHT} ${getX(0)},${SVG_HEIGHT}` 
+    : '';
 
   const handlePlay = async (e) => {
     e.stopPropagation();
@@ -92,7 +96,16 @@ function PitchPatternItem({ pattern }) {
           <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '' }}>
             {isPlaying ? '■' : '▶'}
           </span>
-          <span className="dict-card__id">{pattern.id || 'Pattern'}</span>
+          <span className="dict-card__id" style={{ 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis', 
+            maxWidth: '180px',
+            display: 'inline-block',
+            verticalAlign: 'bottom'
+          }} title={pattern.id || 'Pattern'}>
+            {pattern.id || 'Pattern'}
+          </span>
           {pattern.count > 1 && (
             <span className="badge badge--orange">×{pattern.count}</span>
           )}
@@ -125,11 +138,23 @@ function PitchPatternItem({ pattern }) {
 
       <div className="dict-card__visual">
         <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="pitch-sparkline">
+          <defs>
+            <linearGradient id={`grad-${pattern.id}`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          
           {/* 背景のグリッド線（中央） */}
           <line x1="0" y1={SVG_HEIGHT/2} x2={SVG_WIDTH} y2={SVG_HEIGHT/2} className="pitch-sparkline__grid" />
           
+          {/* エリアチャート（塗りつぶし） */}
+          {polygonPoints && (
+            <polygon points={polygonPoints} fill={`url(#grad-${pattern.id})`} />
+          )}
+
           {/* 折れ線 */}
-          <polyline points={points} className="pitch-sparkline__line" />
+          <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3 }} />
           
           {/* プロット点と音名ラベル */}
           {values.map((val, i) => {
@@ -158,11 +183,9 @@ function PitchPatternItem({ pattern }) {
         </svg>
       </div>
 
-      <div className="dict-card__meta">
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
-          <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
-        </div>
+      <div className="dict-card__meta" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+        <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
+        <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
         {pattern.section && (
           <span className={`badge-tag ${getSectionClass(pattern.section)}`}>
             {pattern.section.replace('_', ' ')}
