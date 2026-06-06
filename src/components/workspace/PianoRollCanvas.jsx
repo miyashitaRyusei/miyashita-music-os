@@ -3,7 +3,7 @@ import { useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import MidiMetadataModal from './MidiMetadataModal';
 
-import { usePianoRollDraw, PIXELS_PER_SECOND, LEFT_MARGIN, TOP_MARGIN } from '../../hooks/usePianoRollDraw';
+import { usePianoRollDraw, PIXELS_PER_SECOND, LEFT_MARGIN, TOP_MARGIN, BOTTOM_MARGIN } from '../../hooks/usePianoRollDraw';
 import { usePianoRollMouse } from '../../hooks/usePianoRollMouse';
 import { usePianoRollDrop } from '../../hooks/usePianoRollDrop';
 import { usePianoRollPlayback } from '../../hooks/usePianoRollPlayback';
@@ -66,26 +66,43 @@ export default function PianoRollCanvas() {
     handleMetadataCancel,
   } = usePianoRollDrop({ setMidiData, setScrollX });
 
-  // --- 描画フック（canvasSizeを取得） ---
-  // まずcanvasSize取得のため最小限の引数でフックを呼ぶ。
-  // pitchToYはcanvasSizeに依存するため、canvasSizeが確定してから算出する。
-  const { canvasSize, pxToPitch, pitchToY } = usePianoRollDraw({
-    canvasRef,
-    containerRef,
-    midiData,
-    scrollX,
-    selectedNotes,
-    selectedRegion,
-    isDragging: false,
-    dragStartData: null,
-    dragEndData: null,
-    playbackCursor,
-    isDragOver,
-    parsedChords,
-    timeToX,
-    // pitchToYは自己参照になるのでフック内で計算して返す
-    pitchToY: () => 0,
-  });
+  // --- コンテナサイズ監視 ---
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setCanvasSize({
+          width: Math.floor(width),
+          height: Math.max(300, Math.floor(height)),
+        });
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [containerRef]);
+
+  // --- 座標変換 ---
+  const pxToPitch = useCallback((py) => {
+    if (!midiData) return 60;
+    const { pitchRange } = midiData;
+    const drawableHeight = canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN;
+    const totalPitches = pitchRange.max - pitchRange.min + 1;
+    const pitchFromTop = (py - TOP_MARGIN) / drawableHeight * totalPitches;
+    return Math.round(pitchRange.max - pitchFromTop);
+  }, [midiData, canvasSize.height]);
+
+  const pitchToY = useCallback((midiPitch) => {
+    if (!midiData) return 0;
+    const { pitchRange } = midiData;
+    const drawableHeight = canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN;
+    const totalPitches = pitchRange.max - pitchRange.min + 1;
+    const pitchOffset = pitchRange.max - midiPitch;
+    return TOP_MARGIN + (pitchOffset / totalPitches) * drawableHeight;
+  }, [midiData, canvasSize.height]);
 
   // --- マウスフック ---
   const {
@@ -109,12 +126,10 @@ export default function PianoRollCanvas() {
     setSelectedRegion,
   });
 
-  // --- 描画フック（本番: isDragging等確定後）---
-  // フックを2回呼ぶが、Reactの仕様上2回目のuseEffectが最後に実行され上書きされる。
-  // canvasRef/containerRefは同一オブジェクトなので副作用は1回分だけ生じる。
+  // --- 描画フック ---
   usePianoRollDraw({
     canvasRef,
-    containerRef,
+    canvasSize,
     midiData,
     scrollX,
     selectedNotes,

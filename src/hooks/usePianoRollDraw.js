@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { midiToNoteName } from '../utils/noteUtils';
 
 // --- 描画定数 ---
@@ -57,7 +57,7 @@ function roundRect(ctx, x, y, w, h, r) {
  */
 export function usePianoRollDraw({
   canvasRef,
-  containerRef,
+  canvasSize,
   midiData,
   scrollX,
   selectedNotes,
@@ -71,25 +71,6 @@ export function usePianoRollDraw({
   timeToX,
   pitchToY,
 }) {
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
-
-  // --- コンテナサイズ監視 ---
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        setCanvasSize({
-          width: Math.floor(width),
-          height: Math.max(300, Math.floor(height)),
-        });
-      }
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [containerRef]);
-
   // --- Canvas描画 ---
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -265,26 +246,5 @@ export function usePianoRollDraw({
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     }
-  }, [canvasSize, midiData, scrollX, selectedNotes, selectedRegion, isDragging, dragStartData, dragEndData, playbackCursor, isDragOver, parsedChords, timeToX, pitchToY]);
-
-  // --- 座標変換（canvasSizeに依存するものをここで定義） ---
-  const pxToPitch = useCallback((py) => {
-    if (!midiData) return 60;
-    const { pitchRange } = midiData;
-    const drawableHeight = canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN;
-    const totalPitches = pitchRange.max - pitchRange.min + 1;
-    const pitchFromTop = (py - TOP_MARGIN) / drawableHeight * totalPitches;
-    return Math.round(pitchRange.max - pitchFromTop);
-  }, [midiData, canvasSize.height]);
-
-  const pitchToYFn = useCallback((midiPitch) => {
-    if (!midiData) return 0;
-    const { pitchRange } = midiData;
-    const drawableHeight = canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN;
-    const totalPitches = pitchRange.max - pitchRange.min + 1;
-    const pitchOffset = pitchRange.max - midiPitch;
-    return TOP_MARGIN + (pitchOffset / totalPitches) * drawableHeight;
-  }, [midiData, canvasSize.height]);
-
-  return { canvasSize, pxToPitch, pitchToY: pitchToYFn };
+  }, [canvasSize, midiData, scrollX, selectedNotes, selectedRegion, isDragging, dragStartData, dragEndData, playbackCursor, isDragOver, parsedChords, timeToX, pitchToY, canvasRef]);
 }
