@@ -353,6 +353,7 @@ ul, ol {
 }
 
 .workspace-sidebar .workspace-section {
+  padding: var(--spacing-lg);
   margin-bottom: 0;
 }
 
@@ -609,6 +610,7 @@ ul, ol {
    ============================================ */
 .radio-group {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-sm);
 }
 
@@ -616,7 +618,7 @@ ul, ol {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-sm);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -624,6 +626,7 @@ ul, ol {
   cursor: pointer;
   transition: all var(--transition-fast);
   user-select: none;
+  white-space: nowrap;
 }
 
 .radio-group__item:hover {
