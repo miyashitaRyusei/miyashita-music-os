@@ -21,21 +21,30 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
       case 'アウトロ': return 'badge-section--outro';
       default: return 'badge-section--a';
     }
+  // ダイアトニックコード（Cメジャー基準）の判定
+  const diatonicChords = ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 'CM7', 'Dm7', 'Em7', 'FM7', 'G7', 'Am7', 'Bm7b5'];
+  const isNonDiatonic = (chord) => {
+    // 完全に一致するかどうか。テンションコードなど複雑なものは一旦ダイアトニックから外れる扱いにする
+    return !diatonicChords.includes(chord);
   };
 
   return (
-    <div className={`dict-card ${isPlaying ? 'dict-card--playing' : ''}`} onClick={onTogglePlay}>
-      <div className="dict-card__header">
+    <div className="chord-block">
+      <div className="chord-block__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '' }}>
+          <button 
+            className="list-item__play-btn"
+            onClick={onTogglePlay}
+            title={isPlaying ? "停止" : "再生"}
+          >
             {isPlaying ? '■' : '▶'}
-          </span>
+          </button>
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-            <span className="dict-card__id" style={{ 
+            <span className="chord-block__label" style={{ 
               whiteSpace: 'nowrap', 
               overflow: 'hidden', 
               textOverflow: 'ellipsis', 
-              maxWidth: '180px',
+              maxWidth: '300px',
               display: 'inline-block',
               verticalAlign: 'bottom'
             }} title={progression.id || progression.label || 'Chord Progression'}>
@@ -48,15 +57,41 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
           {progression.count > 1 && (
             <span className="badge badge--orange" style={{ flexShrink: 0 }}>×{progression.count}</span>
           )}
-          <span className="badge" style={{ marginLeft: 'auto', flexShrink: 0 }}>{progression.key}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span className="badge" style={{ marginLeft: 'auto', flexShrink: 0 }}>{progression.key}</span>
+      </div>
+      
+      <div className="chord-block__progression">
+        {(progression.chords || []).map((chord, i) => (
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="chord-block__chord" style={{
+              color: isNonDiatonic(chord) ? 'var(--accent-orange)' : 'var(--text-primary)',
+              fontWeight: isNonDiatonic(chord) ? 'bold' : '600'
+            }}>{chord}</span>
+            {i < (progression.chords || []).length - 1 && (
+              <span className="chord-block__arrow">→</span>
+            )}
+          </span>
+        ))}
+      </div>
+      
+      <div className="chord-block__meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span className={`badge-tag ${sourceClass}`}>{progression.source === 'original' ? '自作曲' : progression.source}</span>
+          <span className={`badge-tag ${prefClass}`}>{progression.preference === 'like' ? '好き' : progression.preference}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {progression.sections?.map((sec, i) => sec ? (
+            <span key={i} className={`badge-tag ${getSectionClass(sec)}`}>
+              {sec.replace('_', ' ')}
+            </span>
+          ) : null)}
           <button
             onClick={(e) => {
               e.stopPropagation();
               toggleChordFavorite(progression.id);
             }}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', fontSize: '1.1rem', color: progression.is_favorite ? '#f5a623' : 'var(--text-tertiary)', lineHeight: 1 }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', fontSize: '1.1rem', color: progression.is_favorite ? '#f5a623' : 'var(--text-tertiary)', lineHeight: 1, marginLeft: '8px' }}
             title={progression.is_favorite ? 'お気に入りを解除' : 'お気に入りに登録'}
           >
             {progression.is_favorite ? '★' : '☆'}
@@ -74,40 +109,6 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
             🗑️
           </button>
         </div>
-      </div>
-      
-      <div className="dict-card__visual" style={{ padding: '24px 16px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', minHeight: '100px' }}>
-        {(progression.chords || []).map((chord, i) => {
-          const isMinor = chord.includes('m') || chord.includes('dim');
-          return (
-            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="chord-block__chord" style={{ 
-                borderLeft: isMinor ? '4px solid var(--accent-purple)' : '4px solid var(--accent-orange)',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-default)',
-                borderLeftWidth: '4px',
-                fontSize: '1rem',
-                minWidth: '48px',
-                textAlign: 'center',
-                padding: '8px 12px'
-              }}>{chord}</span>
-              {i < (progression.chords || []).length - 1 && (
-                <span className="chord-block__arrow" style={{ opacity: 0.5 }}>→</span>
-              )}
-            </span>
-          );
-        })}
-      </div>
-      
-      <div className="dict-card__meta" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-        <span className={`badge-tag ${sourceClass}`}>{progression.source === 'original' ? '自作曲' : progression.source}</span>
-        <span className={`badge-tag ${prefClass}`}>{progression.preference === 'like' ? '好き' : progression.preference}</span>
-        {progression.sections?.map((sec, i) => sec ? (
-          <span key={i} className={`badge-tag ${getSectionClass(sec)}`}>
-            {sec.replace('_', ' ')}
-          </span>
-        ) : null)}
       </div>
     </div>
   );
@@ -139,7 +140,7 @@ export default function ChordProgressionList() {
           setAdvancedFilters={setAdvancedFilters} 
         />
       </CommonFilter>
-      <div className="dict-grid">
+      <div className="stagger">
         {filteredItems.length > 0 ? (
           filteredItems.map((prog) => (
             <ChordProgressionItem 
@@ -150,7 +151,7 @@ export default function ChordProgressionList() {
             />
           ))
         ) : (
-          <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+          <div className="empty-state">
             <span className="empty-state__icon">♬</span>
             <span className="empty-state__text">データがありません</span>
           </div>
