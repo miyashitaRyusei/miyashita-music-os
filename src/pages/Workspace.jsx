@@ -3,7 +3,8 @@ import useAppStore from '../store/useAppStore';
 import ChordInputArea from '../components/workspace/ChordInputArea';
 import PianoRollCanvas from '../components/workspace/PianoRollCanvas';
 import StockControls from '../components/workspace/StockControls';
-import { transposeChordProgression } from '../utils/chordTransposer';
+import { transposeChordProgression, transposeChord } from '../utils/chordTransposer';
+import { midiToPitchClassKatakana } from '../utils/noteUtils';
 
 export default function Workspace() {
   const {
@@ -14,8 +15,13 @@ export default function Workspace() {
     addPitchPattern,
     addRhythmPattern,
     addChordProgression,
+    addMelodyChordRelation,
     midiData,
     activeSongId,
+    registeredSongs,
+    pitchPatterns,
+    rhythmPatterns,
+    chordProgressions,
   } = useAppStore();
 
   const [toastMessage, setToastMessage] = useState('');
@@ -102,6 +108,76 @@ export default function Workspace() {
     showToast('✅ コード辞書にストックしました（Cメジャーに移調済）');
   };
 
+  const handleStockMelodyChordRelations = () => {
+    if (parsedChords.length === 0) {
+      showToast('⚠️ コードを入力してください');
+      return;
+    }
+    if (!midiData || !midiData.notes || midiData.notes.length === 0) {
+      showToast('⚠️ ピアノロールにMIDIを読み込んでください');
+      return;
+    }
+
+    const measureDuration = midiData.measureDuration || 2.0; // デフォルト2秒
+    const originalKey = stockAttributes.originalKey;
+    const song = registeredSongs.find(s => s.id === activeSongId);
+    const songTitle = song ? song.title : (midiData.name || '未設定楽曲');
+
+    let relationCount = 0;
+
+    parsedChords.forEach((m) => {
+      const chordsInMeasure = m.chords.length;
+      if (chordsInMeasure === 0) return;
+      const timePerChord = measureDuration / chordsInMeasure;
+      
+      m.chords.forEach((chord, i) => {
+        const chordTime = (m.measure - 1) * measureDuration + i * timePerChord;
+        
+        // chordTimeの瞬間に鳴っているノートを探す
+        // 同時鳴りの場合は一番高い音（メロディライン）を優先する
+        const soundingNotes = midiData.notes.filter(
+          n => n.time <= chordTime + 0.05 && n.time + n.duration >= chordTime - 0.05
+        );
+
+        if (soundingNotes.length > 0) {
+          // 最も高いピッチを選ぶ
+          const highestNote = soundingNotes.reduce((prev, current) => (prev.midi > current.midi) ? prev : current);
+          
+          // ノートのピッチをCメジャー基準の階名に変換
+          // (一度Cメジャーへの差分を計算してから階名にする)
+          const keyOffsets = {
+            'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4,
+            'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+          };
+          const offset = keyOffsets[originalKey] || 0;
+          const transposedMidi = highestNote.midi - offset;
+          const degree = midiToPitchClassKatakana(transposedMidi);
+          
+          const transposedChord = transposeChord(chord.name, originalKey);
+          
+          const relationId = `${songTitle}-${m.measure}-${i}-${Date.now()}`;
+
+          addMelodyChordRelation({
+            id: relationId,
+            songId: activeSongId,
+            melodyDegree: degree,
+            chordName: transposedChord,
+            source: stockAttributes.source,
+            preference: stockAttributes.preference,
+            section: stockAttributes.section,
+          });
+          relationCount++;
+        }
+      });
+    });
+
+    if (relationCount > 0) {
+      showToast(`✅ ${relationCount}件の「メロディ×コード」ペアをストックしました`);
+    } else {
+      showToast('⚠️ コードの切り替わりタイミングで鳴っているメロディが見つかりませんでした');
+    }
+  };
+
   return (
     <div className="page animate-fade-in">
       <div className="page__header">
@@ -138,10 +214,15 @@ export default function Workspace() {
       {/* コード入力エリア */}
       <div className="workspace-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
-          <span className="workspace-section__label" style={{ marginBottom: 0 }}>コード進行の入力・解析</span>
-          <button className="btn btn--primary" onClick={handleStockChord}>
-            ♬ コード辞書へストック
-          </button>
+          <span className="workspace-section__label">コード進行入力（小節は「|」で区切る）</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button className="btn btn--outline" onClick={handleStockMelodyChordRelations}>
+              🎵 メロディ×コード関係性を抽出
+            </button>
+            <button className="btn btn--primary" onClick={handleStockChord}>
+              🎹 コード辞書へストック
+            </button>
+          </div>
         </div>
         <ChordInputArea />
       </div>

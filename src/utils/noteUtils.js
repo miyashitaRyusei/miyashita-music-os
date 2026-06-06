@@ -12,7 +12,7 @@
  * @returns {string} 階名（Do, Re, Mi, ...）＋オクターブ情報
  */
 export function midiToDegreeName(midiNumber) {
-  const degreeNames = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+  const degreeNames = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
   const pitchClass = midiNumber % 12;
   const octave = Math.floor(midiNumber / 12) - 1;
 
@@ -28,6 +28,16 @@ export function midiToDegreeName(midiNumber) {
     return name + '↓'.repeat(Math.abs(relativeOctave));
   }
   return name;
+}
+
+/**
+ * MIDIノート番号をオクターブ情報なしのカタカナ階名に変換する（Cメジャー基準）。
+ * メロディとコードの関係性分析用（どのオクターブでも同じ音高として扱うため）。
+ */
+export function midiToPitchClassKatakana(midiNumber) {
+  const degreeNames = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
+  const pitchClass = midiNumber % 12;
+  return degreeNames[pitchClass];
 }
 
 /**

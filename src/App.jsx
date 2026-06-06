@@ -6,6 +6,7 @@ import Workspace from './pages/Workspace';
 import PitchDictionary from './pages/PitchDictionary';
 import RhythmDictionary from './pages/RhythmDictionary';
 import ChordDictionary from './pages/ChordDictionary';
+import MelodyChordDictionary from './pages/MelodyChordDictionary';
 import SongRegistry from './pages/SongRegistry';
 import LoadingOverlay from './components/ui/LoadingOverlay';
 import useAppStore from './store/useAppStore';
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/pitch-dictionary" element={<PitchDictionary />} />
           <Route path="/rhythm-dictionary" element={<RhythmDictionary />} />
           <Route path="/chord-dictionary" element={<ChordDictionary />} />
+          <Route path="/melody-chord-dictionary" element={<MelodyChordDictionary />} />
         </Route>
       </Routes>
       <LoadingOverlay />

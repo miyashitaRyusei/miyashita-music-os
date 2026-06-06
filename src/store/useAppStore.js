@@ -27,6 +27,7 @@ const useAppStore = create((set, get) => ({
         supabase.from('pitch_patterns').select('*').order('created_at', { ascending: false }),
         supabase.from('rhythm_patterns').select('*').order('created_at', { ascending: false }),
         supabase.from('chord_progressions').select('*').order('created_at', { ascending: false }),
+        supabase.from('melody_chord_relations').select('*').order('created_at', { ascending: false }),
       ]);
 
       set({
@@ -34,6 +35,7 @@ const useAppStore = create((set, get) => ({
         pitchPatterns: pitches || [],
         rhythmPatterns: rhythms || [],
         chordProgressions: chords || [],
+        melodyChordRelations: relations || [],
       });
     } catch (err) {
       console.error('Error fetching data from Supabase:', err);
@@ -78,6 +80,7 @@ const useAppStore = create((set, get) => ({
         pitchPatterns: state.pitchPatterns.filter(p => p.song_id !== id && p.songId !== id),
         rhythmPatterns: state.rhythmPatterns.filter(p => p.song_id !== id && p.songId !== id),
         chordProgressions: state.chordProgressions.filter(c => c.song_id !== id && c.songId !== id),
+        melodyChordRelations: state.melodyChordRelations.filter(m => m.song_id !== id && m.songId !== id),
         activeSongId: state.activeSongId === id ? null : state.activeSongId
       }));
     }

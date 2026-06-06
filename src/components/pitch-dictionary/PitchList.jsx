@@ -5,6 +5,9 @@ import { playPitchSequence, stopAudio } from '../../utils/audioPlayer';
 // 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
 function degreeToValue(degreeStr) {
   const baseMap = {
+    'ド': 0, 'ド#': 1, 'レ': 2, 'レ#': 3, 'ミ': 4, 'ファ': 5, 'ファ#': 6,
+    'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11,
+    // 既存データ（Do, Re）へのフォールバック対応
     'Do': 0, 'Do#': 1, 'Re': 2, 'Re#': 3, 'Mi': 4, 'Fa': 5, 'Fa#': 6,
     'Sol': 7, 'Sol#': 8, 'La': 9, 'La#': 10, 'Si': 11
   };
