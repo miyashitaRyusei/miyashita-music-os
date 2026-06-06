@@ -1574,7 +1574,13 @@ ul, ol {
 }
 
 .rhythm-timeline__grid--strong {
-  background: var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+
+.rhythm-timeline__grid--zero {
+  border-left: 2px solid var(--accent-red);
+  opacity: 0.8;
+  z-index: 1;
 }
 
 .rhythm-timeline__block {

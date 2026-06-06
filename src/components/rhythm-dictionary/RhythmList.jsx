@@ -41,12 +41,13 @@ function RhythmPatternItem({ pattern }) {
 
   // グリッド線（4拍分 = 0, 0.25, 0.5, 0.75 の位置）
   // 複数小節にまたがる場合は 1.0, 1.25... と続く
+  // アウフタクトがある場合はマイナス（-0.25, -0.5...）からスタートする
   const gridLines = [];
-  for (let i = 0; i <= Math.ceil(maxTime * 4); i++) {
+  const startBeat = Math.floor(minTime * 4);
+  const endBeat = Math.ceil(maxTime * 4);
+  for (let i = startBeat; i <= endBeat; i++) {
     const beatTime = i * 0.25;
-    if (beatTime + offset >= 0) {
-      gridLines.push(beatTime);
-    }
+    gridLines.push(beatTime);
   }
 
   const handlePlay = async (e) => {
@@ -96,13 +97,21 @@ function RhythmPatternItem({ pattern }) {
       <div className="dict-card__visual" style={{ padding: '24px 16px' }}>
         <div className="rhythm-timeline">
           {/* 背景の拍グリッド線 */}
-          {gridLines.map((beatTime) => (
-            <div 
-              key={beatTime} 
-              className={`rhythm-timeline__grid${beatTime % 1 === 0 ? ' rhythm-timeline__grid--strong' : ''}`}
-              style={{ left: `${getLeftPct(beatTime)}%` }}
-            />
-          ))}
+          {gridLines.map((beatTime) => {
+            let className = 'rhythm-timeline__grid';
+            if (beatTime === 0) {
+              className += ' rhythm-timeline__grid--zero';
+            } else if (beatTime % 1 === 0) {
+              className += ' rhythm-timeline__grid--strong';
+            }
+            return (
+              <div 
+                key={beatTime} 
+                className={className}
+                style={{ left: `${getLeftPct(beatTime)}%` }}
+              />
+            );
+          })}
 
           {/* 音符ブロック */}
           {timings.map((t, i) => (

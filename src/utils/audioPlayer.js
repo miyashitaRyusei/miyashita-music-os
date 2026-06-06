@@ -83,9 +83,30 @@ export async function playRhythmSequence(timings, onEnd) {
   
   // アウフタクト（マイナス時間）がある場合、0始まりになるようにオフセットを加算
   const minTime = Math.min(...timings.map(t => t.normalizedTime), 0);
+  const maxTimeNormalized = Math.max(1.0, ...timings.map(t => t.normalizedTime + t.normalizedDuration));
   const offset = Math.abs(minTime);
 
   let maxEndTime = 0;
+
+  // メトロノームのクリック音を鳴らす
+  const startBeat = Math.floor(minTime * 4);
+  const endBeat = Math.ceil(maxTimeNormalized * 4);
+  
+  for (let i = startBeat; i <= endBeat; i++) {
+    const isZero = i === 0;
+    const isDownbeat = i % 4 === 0;
+    // 0地点はC6(一番高い音)、その他の小節頭はG5、それ以外はC5
+    const clickNote = isZero ? 'C6' : (isDownbeat ? 'G5' : 'C5');
+    const clickTime = now + (i * 0.25 + offset) * measureSeconds;
+    // 音量: 0地点(0.8) > 小節頭(0.5) > その他(0.3)
+    const velocity = isZero ? 0.8 : (isDownbeat ? 0.5 : 0.3);
+    
+    synth.triggerAttackRelease(clickNote, 0.05, clickTime, velocity);
+    
+    if (clickTime + 0.05 > maxEndTime) {
+      maxEndTime = clickTime + 0.05;
+    }
+  }
 
   timings.forEach(timing => {
     const note = 'C4';
@@ -93,8 +114,8 @@ export async function playRhythmSequence(timings, onEnd) {
     const startTime = now + (timing.normalizedTime + offset) * measureSeconds;
     const duration = timing.normalizedDuration * measureSeconds;
     
-    // durationの90%だけ発音し、音の区切り（スタッカート感）を出す
-    synth.triggerAttackRelease(note, duration * 0.9, startTime);
+    // リズム本体の音 (velocity=1.0)
+    synth.triggerAttackRelease(note, duration * 0.9, startTime, 1.0);
 
     if (startTime + duration > maxEndTime) {
       maxEndTime = startTime + duration;
