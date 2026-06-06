@@ -1,8 +1,8 @@
 // ピッチ名から半音単位の相対値を計算
 function degreeToValue(degreeStr) {
   const baseMap = {
-    'Do': 0, 'Do#': 1, 'Re': 2, 'Re#': 3, 'Mi': 4, 'Fa': 5, 'Fa#': 6,
-    'Sol': 7, 'Sol#': 8, 'La': 9, 'La#': 10, 'Si': 11
+    'ド': 0, 'ド#': 1, 'レ': 2, 'レ#': 3, 'ミ': 4, 'ファ': 5, 'ファ#': 6,
+    'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11
   };
   const name = degreeStr.replace(/[↑↓]/g, '');
   const val = baseMap[name] !== undefined ? baseMap[name] : 0;
@@ -44,7 +44,7 @@ export function calculateMetrics(pitchPatterns, rhythmPatterns) {
   });
 
   // ========== ヒストグラム計算 ==========
-  const allPitches = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+  const allPitches = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
   const histogramData = allPitches.map(pitch => ({ pitch, original: 0, like: 0, dislike: 0 }));
 
   const countPitches = (groupPitchArray) => {
