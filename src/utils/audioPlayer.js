@@ -214,22 +214,30 @@ export async function playChordProgression(chords, onEnd) {
   const { Chord, Note } = await import('@tonaljs/tonal');
 
   const now = Tone.now();
-  const stepTime = 1.0; // 1秒ごとに1コード
+  let currentOffset = 0;
   
-  chords.forEach((chordName, i) => {
+  chords.forEach((chordItem) => {
+    // 互換性のため、文字列の配列もサポート
+    const chordName = typeof chordItem === 'string' ? chordItem : chordItem.name;
+    // 1拍 = 0.5秒 (120BPM) と仮定
+    const beats = typeof chordItem === 'string' ? 4 : (chordItem.beats || 4);
+    const stepDuration = beats * 0.5;
+
     const chordNotes = parseChordToNotes(chordName, 4, Chord, Note);
 
     if (chordNotes.length > 0) {
       // ポリフォニックで和音を発音（90%の時間だけ鳴らしてスタッカート感を出す）
-      synth.triggerAttackRelease(chordNotes, stepTime * 0.9, now + i * stepTime);
+      synth.triggerAttackRelease(chordNotes, stepDuration * 0.9, now + currentOffset);
     }
+    
+    currentOffset += stepDuration;
   });
 
   if (onEnd) {
     currentTimeoutId = setTimeout(() => {
       onEnd();
       currentTimeoutId = null;
-    }, chords.length * stepTime * 1000 + 200);
+    }, currentOffset * 1000 + 200);
   }
 }
 

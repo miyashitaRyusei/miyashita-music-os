@@ -64,17 +64,29 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
       </div>
       
       <div className="chord-block__progression">
-        {(progression.chords || []).map((chord, i) => (
-          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="chord-block__chord" style={{
-              color: isNonDiatonic(chord) ? 'var(--accent-orange)' : 'var(--text-primary)',
-              fontWeight: isNonDiatonic(chord) ? 'bold' : '600'
-            }}>{chord}</span>
-            {i < (progression.chords || []).length - 1 && (
-              <span className="chord-block__arrow">→</span>
-            )}
-          </span>
-        ))}
+        {(progression.chords || []).map((chordItem, i) => {
+          const chordName = typeof chordItem === 'string' ? chordItem : chordItem.name;
+          const beats = typeof chordItem === 'string' ? null : chordItem.beats;
+          
+          return (
+            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span className="chord-block__chord" style={{
+                  color: isNonDiatonic(chordName) ? 'var(--accent-orange)' : 'var(--text-primary)',
+                  fontWeight: isNonDiatonic(chordName) ? 'bold' : '600'
+                }}>{chordName}</span>
+                {beats && (
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                    {beats}拍
+                  </span>
+                )}
+              </div>
+              {i < (progression.chords || []).length - 1 && (
+                <span className="chord-block__arrow">→</span>
+              )}
+            </span>
+          );
+        })}
       </div>
       
       <div className="chord-block__meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

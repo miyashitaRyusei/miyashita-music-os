@@ -113,7 +113,12 @@ export default function Workspace() {
       const measureKey = getEffectiveKeyForMeasure(mIndex, parsedChords, stockAttributes.originalKey);
       m.chords.forEach((chord) => {
         if (selectedChordIndices.includes(flatIndex)) {
-          selectedChords.push(transposeChord(chord.name, measureKey));
+          // 4/4拍子を前提とし、1小節内のコード数で長さを均等分割する
+          const beats = 4 / m.chords.length;
+          selectedChords.push({
+            name: transposeChord(chord.name, measureKey),
+            beats: beats
+          });
         }
         flatIndex++;
       });
