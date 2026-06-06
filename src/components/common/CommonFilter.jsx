@@ -110,17 +110,28 @@ export default function CommonFilter({ filters, setFilters, children }) {
 
       </div>
 
-      {children && (
-        <div style={{ marginTop: '16px' }}>
+      <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button
+          className={`btn btn--sm ${filters.favoritesOnly ? 'btn--primary' : 'btn--secondary'}`}
+          onClick={() => setFilters(f => ({ ...f, favoritesOnly: !f.favoritesOnly }))}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem' }}
+        >
+          <span style={{ color: filters.favoritesOnly ? '#fff' : '#f5a623' }}>
+            {filters.favoritesOnly ? '★' : '☆'}
+          </span>
+          お気に入りのみ
+        </button>
+
+        {children && (
           <button 
-            className="btn btn--secondary" 
+            className="btn btn--secondary btn--sm" 
             onClick={() => setIsDrawerOpen(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
           >
             <span>⚙️</span> 高度な絞り込み
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {children && (
         <Drawer 

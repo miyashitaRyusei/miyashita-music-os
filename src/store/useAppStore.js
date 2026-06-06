@@ -32,7 +32,15 @@ const useAppStore = create((set, get) => ({
       ]);
 
       set({
-        registeredSongs: songs || [],
+        registeredSongs: (songs || []).map(s => ({
+          ...s,
+          originalKey: s.original_key,
+          minNote: s.min_note,
+          maxNote: s.max_note,
+          importedAt: s.imported_at,
+          midiNotes: s.midi_notes || null,
+          chordText: s.chord_text || ''
+        })),
         pitchPatterns: (pitches || []).map(p => ({ ...p, songId: p.song_id })),
         rhythmPatterns: (rhythms || []).map(r => ({ ...r, songId: r.song_id })),
         chordProgressions: (chords || []).map(c => ({ ...c, songId: c.song_id })),
@@ -60,13 +68,23 @@ const useAppStore = create((set, get) => ({
         bpm: song.bpm,
         min_note: song.minNote,
         max_note: song.maxNote,
+        midi_notes: song.midiNotes || null,
+        chord_text: song.chordText || '',
         imported_at: song.importedAt || new Date().toISOString()
       }
     ]);
 
     if (!error) {
       set((state) => ({
-        registeredSongs: [{ ...song, originalKey: song.originalKey, minNote: song.minNote, maxNote: song.maxNote, importedAt: song.importedAt }, ...state.registeredSongs],
+        registeredSongs: [{ 
+          ...song, 
+          originalKey: song.originalKey, 
+          minNote: song.minNote, 
+          maxNote: song.maxNote, 
+          midiNotes: song.midiNotes || null,
+          chordText: song.chordText || '',
+          importedAt: song.importedAt 
+        }, ...state.registeredSongs],
         activeSongId: song.id,
         stockAttributes: {
           ...state.stockAttributes,
@@ -92,23 +110,65 @@ const useAppStore = create((set, get) => ({
   },
   setActiveSongId: (id) => set((state) => {
     const song = state.registeredSongs.find(s => s.id === id);
+    if (!song) return { activeSongId: id };
+    
+    const parsedChords = song.chordText ? parseChordInput(song.chordText) : [];
+
     return {
       activeSongId: id,
-      ...(song ? {
-        stockAttributes: {
-          ...state.stockAttributes,
-          originalKey: song.originalKey || state.stockAttributes.originalKey
-        }
-      } : {})
+      chordInputText: song.chordText || '',
+      parsedChords,
+      midiData: song.midiNotes || null,
+      selectedNotes: [],
+      extractedPitch: [],
+      extractedRhythm: [],
+      stockAttributes: {
+        ...state.stockAttributes,
+        originalKey: song.originalKey || state.stockAttributes.originalKey
+      }
     };
   }),
+
+  // 作業場の状態（MIDIノート・コードテキスト）を楽曲データとして保存する
+  updateSongWorkspaceState: async (songId, updates) => {
+    // updates: { midiNotes?: any, chordText?: string }
+    const dbUpdates = {};
+    if (updates.midiNotes !== undefined) dbUpdates.midi_notes = updates.midiNotes;
+    if (updates.chordText !== undefined) dbUpdates.chord_text = updates.chordText;
+
+    if (Object.keys(dbUpdates).length === 0) return;
+
+    // 非同期でDBを更新（結果は待たない / エラーハンドリングのみ）
+    supabase.from('songs').update(dbUpdates).eq('id', songId).then(({ error }) => {
+      if (error) console.error('Failed to update workspace state:', error);
+    });
+
+    // ローカルのステートも即座に更新する
+    set((state) => ({
+      registeredSongs: state.registeredSongs.map(song => 
+        song.id === songId 
+          ? { ...song, ...updates } 
+          : song
+      )
+    }));
+  },
 
   // ============================================
   // PianoRoll State
   // ============================================
   midiData: null,
-  setMidiData: (data) => set({ midiData: data, selectedNotes: [], extractedPitch: [], extractedRhythm: [] }),
-  clearMidiData: () => set({ midiData: null, selectedNotes: [], extractedPitch: [], extractedRhythm: [] }),
+  setMidiData: (data) => set((state) => {
+    if (state.activeSongId) {
+      state.updateSongWorkspaceState(state.activeSongId, { midiNotes: data });
+    }
+    return { midiData: data, selectedNotes: [], extractedPitch: [], extractedRhythm: [] };
+  }),
+  clearMidiData: () => set((state) => {
+    if (state.activeSongId) {
+      state.updateSongWorkspaceState(state.activeSongId, { midiNotes: null });
+    }
+    return { midiData: null, selectedNotes: [], extractedPitch: [], extractedRhythm: [] };
+  }),
 
   selectedNotes: [],
   setSelectedNotes: (notes) => set({ selectedNotes: notes }),
@@ -150,19 +210,30 @@ const useAppStore = create((set, get) => ({
   selectedChordIndices: [], // フラットインデックスの配列
   lastClickedChordIndex: null, // Shift+Click 用
 
-  setChordInput: (text) => {
-    set({
+  setChordInput: (text) => set((state) => {
+    const newState = {
       chordInputText: text,
-      parsedChords: parseChordInput(text),
+      parsedChords: parseChordInput(text)
+    };
+    
+    // アクティブな曲がある場合はオートセーブ
+    if (state.activeSongId) {
+      // 内部関数で非同期保存を呼び出す（zustandのset内から直接非同期処理をキック）
+      state.updateSongWorkspaceState(state.activeSongId, { chordText: text });
+    }
+    
+    return newState;
+  }),
+  clearChordInput: () => set((state) => {
+    if (state.activeSongId) {
+      state.updateSongWorkspaceState(state.activeSongId, { chordText: '' });
+    }
+    return { 
+      chordInputText: '', 
+      parsedChords: [], 
       selectedChordIndices: [],
-      lastClickedChordIndex: null,
-    });
-  },
-  clearChordInput: () => set({ 
-    chordInputText: '', 
-    parsedChords: [], 
-    selectedChordIndices: [],
-    lastClickedChordIndex: null
+      lastClickedChordIndex: null
+    };
   }),
 
   // コード選択のトグル処理

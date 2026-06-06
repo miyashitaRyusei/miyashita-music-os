@@ -176,17 +176,6 @@ export default function RhythmList() {
           setAdvancedFilters={setAdvancedFilters} 
         />
       </CommonFilter>
-      {rhythmPatterns.length > 0 && (
-        <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-          <button
-            className={`btn btn--sm ${filters.favoritesOnly ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setFilters(f => ({ ...f, favoritesOnly: !f.favoritesOnly }))}
-            style={{ fontSize: '0.85rem' }}
-          >
-            ★ お気に入りのみ{filters.favoritesOnly ? ' (表示中)' : ''}
-          </button>
-        </div>
-      )}
       <div className="dict-grid">
         {filteredItems.length > 0 ? (
           filteredItems.map((pattern, i) => (

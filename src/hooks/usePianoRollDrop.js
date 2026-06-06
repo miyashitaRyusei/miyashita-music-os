@@ -50,7 +50,7 @@ export function usePianoRollDrop({ setMidiData, setScrollX }) {
       const minNote = midiToNoteName(dataToProcess.pitchRange.min);
       const maxNote = midiToNoteName(dataToProcess.pitchRange.max);
       const songId = `s_${Date.now()}`;
-      useAppStore.getState().registerSong({
+      await useAppStore.getState().registerSong({
         id: songId,
         title,
         artist,
@@ -61,7 +61,6 @@ export function usePianoRollDrop({ setMidiData, setScrollX }) {
         importedAt: new Date().toISOString(),
       });
       const transposedData = transposeToC(dataWithTempo, rootNote);
-      await new Promise((resolve) => setTimeout(resolve, 10000));
       setMidiData(transposedData);
       setScrollX(0);
     } catch (err) {
