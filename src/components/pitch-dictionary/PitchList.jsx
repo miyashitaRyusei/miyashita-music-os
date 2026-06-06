@@ -139,7 +139,7 @@ function PitchPatternItem({ pattern }) {
       <div className="dict-card__visual">
         <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="pitch-sparkline">
           <defs>
-            <linearGradient id={`grad-${pattern.id}`} x1="0" x2="0" y1="0" y2="1">
+            <linearGradient id={`grad-${encodeURIComponent(pattern.id).replace(/%/g, '_')}`} x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.2" />
               <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0" />
             </linearGradient>
@@ -150,7 +150,7 @@ function PitchPatternItem({ pattern }) {
           
           {/* エリアチャート（塗りつぶし） */}
           {polygonPoints && (
-            <polygon points={polygonPoints} fill={`url(#grad-${pattern.id})`} />
+            <polygon points={polygonPoints} fill={`url(#grad-${encodeURIComponent(pattern.id).replace(/%/g, '_')})`} />
           )}
 
           {/* 折れ線 */}
