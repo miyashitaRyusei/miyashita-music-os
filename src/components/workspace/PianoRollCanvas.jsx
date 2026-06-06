@@ -526,7 +526,15 @@ export default function PianoRollCanvas() {
     } else {
       if (!midiData) return;
       setIsPlaying(true);
-      await playMidiNotes(midiData.notes, playbackCursor, () => {
+
+      const activeSongId = useAppStore.getState().activeSongId;
+      const activeSong = useAppStore.getState().registeredSongs.find(s => s.id === activeSongId);
+      
+      // ユーザー入力のBPMがあればそれを採用し、MIDI元のBPMとの比率で再生速度を決定
+      const targetBpm = activeSong && activeSong.bpm ? activeSong.bpm : midiData.tempo;
+      const playbackRate = targetBpm / (midiData.tempo || 120);
+
+      await playMidiNotes(midiData.notes, playbackCursor, playbackRate, () => {
         setIsPlaying(false);
       });
     }

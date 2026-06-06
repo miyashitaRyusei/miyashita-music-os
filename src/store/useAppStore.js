@@ -68,6 +68,10 @@ const useAppStore = create((set, get) => ({
       set((state) => ({
         registeredSongs: [{ ...song, originalKey: song.originalKey, minNote: song.minNote, maxNote: song.maxNote, importedAt: song.importedAt }, ...state.registeredSongs],
         activeSongId: song.id,
+        stockAttributes: {
+          ...state.stockAttributes,
+          originalKey: song.originalKey || state.stockAttributes.originalKey
+        }
       }));
     } else {
       console.error('Failed to register song:', error);
@@ -86,7 +90,18 @@ const useAppStore = create((set, get) => ({
       }));
     }
   },
-  setActiveSongId: (id) => set({ activeSongId: id }),
+  setActiveSongId: (id) => set((state) => {
+    const song = state.registeredSongs.find(s => s.id === id);
+    return {
+      activeSongId: id,
+      ...(song ? {
+        stockAttributes: {
+          ...state.stockAttributes,
+          originalKey: song.originalKey || state.stockAttributes.originalKey
+        }
+      } : {})
+    };
+  }),
 
   // ============================================
   // PianoRoll State
