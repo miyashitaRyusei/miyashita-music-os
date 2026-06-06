@@ -8,6 +8,7 @@ const navItems = [
   { path: '/rhythm-dictionary', label: 'リズム辞書', icon: '⏱' },
   { path: '/chord-dictionary', label: 'コード辞書', icon: '♬' },
   { path: '/melody-chord-dictionary', label: 'メロディ×コード', icon: '🎵' },
+  { path: '/my-library', label: 'マイライブラリ', icon: '🎧' },
 ];
 
 export default function Sidebar() {
