@@ -381,10 +381,13 @@ export default function PianoRollCanvas() {
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     
     // ドラッグせずにクリックだけした場合は再生カーソルをセットし、選択を解除
     const startX = timeToX(dragStartData.time);
-    if (Math.abs(x - startX) < 5) {
+    const startY = pitchToY(dragStartData.pitch);
+    
+    if (Math.abs(x - startX) < 5 && Math.abs(y - startY) < 5) {
       const clickedTime = pxToTime(x);
       setPlaybackCursor(Math.max(0, clickedTime));
       setSelectedRegion(null);
