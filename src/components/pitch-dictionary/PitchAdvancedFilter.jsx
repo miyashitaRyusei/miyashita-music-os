@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const ALL_PITCHES = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
 

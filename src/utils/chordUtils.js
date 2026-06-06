@@ -5,10 +5,10 @@ const DIATONIC_CHORDS_IN_C = {
   'C': /^(maj7|M7|△7|6|add9|M|maj)?$/i,
   
   // D: Dm, Dm7, Dm9, D-7
-  'D': /^m(7|9|11)?$|^\-7?$/i,
+  'D': /^m(7|9|11)?$|^-7?$/i,
   
   // E: Em, Em7, E-7
-  'E': /^m(7|11)?$|^\-7?$/i,
+  'E': /^m(7|11)?$|^-7?$/i,
   
   // F: F, Fmaj7, FM7, F6, Fadd9
   'F': /^(maj7|M7|△7|6|add9|M|maj)?$/i,
@@ -17,10 +17,10 @@ const DIATONIC_CHORDS_IN_C = {
   'G': /^(7|9|11|13|sus4)?$/i,
   
   // A: Am, Am7, Am9, A-7
-  'A': /^m(7|9|11)?$|^\-7?$/i,
+  'A': /^m(7|9|11)?$|^-7?$/i,
   
   // B: Bdim, Bm7b5, B-7b5
-  'B': /^(dim|dim7|m7b5|\-7b5|o)$/i,
+  'B': /^(dim|dim7|m7b5|-7b5|o)$/i,
 };
 
 /**

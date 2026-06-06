@@ -3,7 +3,8 @@ import useAppStore from '../store/useAppStore';
 import ChordInputArea from '../components/workspace/ChordInputArea';
 import PianoRollCanvas from '../components/workspace/PianoRollCanvas';
 import StockControls from '../components/workspace/StockControls';
-import { transposeChordProgression, transposeChord, getEffectiveKeyAtTime, getEffectiveKeyForMeasure, getTransposeOffset } from '../utils/chordTransposer';
+import ExternalChordImportModal from '../components/workspace/ExternalChordImportModal';
+import { transposeChord, getEffectiveKeyAtTime, getEffectiveKeyForMeasure, getTransposeOffset } from '../utils/chordTransposer';
 import { midiToPitchClassKatakana, midiToDegreeName } from '../utils/noteUtils';
 
 export default function Workspace() {
@@ -22,12 +23,12 @@ export default function Workspace() {
     pitchPatterns,
     rhythmPatterns,
     chordProgressions,
-    selectedRegion,
     selectedChordIndices,
     clearChordSelection,
   } = useAppStore();
 
   const [toastMessage, setToastMessage] = useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -262,7 +263,10 @@ export default function Workspace() {
       <div className="workspace-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
           <span className="workspace-section__label">コード進行入力（小節は「|」で区切る）</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button className="btn btn--secondary" onClick={() => setIsImportModalOpen(true)}>
+              🤖 外部テキストから自動パース
+            </button>
             <button className="btn btn--secondary" onClick={handleStockMelodyChordRelations}>
               ♫ タイムライン全体からメロディ×コード関係性を一括抽出
             </button>
@@ -285,6 +289,11 @@ export default function Workspace() {
         <div className="toast">
           {toastMessage}
         </div>
+      )}
+
+      {/* 外部テキストインポートモーダル */}
+      {isImportModalOpen && (
+        <ExternalChordImportModal onClose={() => setIsImportModalOpen(false)} />
       )}
     </div>
   );

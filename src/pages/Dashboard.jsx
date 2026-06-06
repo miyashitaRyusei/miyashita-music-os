@@ -8,8 +8,6 @@ import useAppStore from '../store/useAppStore';
 import { generateAIPrompt } from '../utils/exportPrompt';
 import { calculateMetrics } from '../utils/metricsCalculator';
 
-const aiPrescriptionText = "AIによる分析結果はまだありません。";
-
 const COLORS = {
   original: '#d13bc7', // ネオンパープル (自作曲)
   like: '#00e5ff',     // シアン (好き)

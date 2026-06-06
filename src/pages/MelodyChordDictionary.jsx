@@ -1,4 +1,3 @@
-import React from 'react';
 import MelodyChordAnalyzer from '../components/melody-chord-dictionary/MelodyChordAnalyzer';
 
 export default function MelodyChordDictionary() {

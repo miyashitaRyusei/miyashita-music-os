@@ -17,7 +17,6 @@ export default function LoadingOverlay() {
   useEffect(() => {
     let intervalId;
     if (isAnalyzing) {
-      setTextIndex(0); // 表示時にリセット
       intervalId = setInterval(() => {
         setTextIndex((prev) => (prev + 1) % LOADING_TEXTS.length);
       }, 2500); // 2.5秒間隔で切り替え

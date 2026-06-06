@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
@@ -58,11 +58,9 @@ export default function MelodyChordAnalyzer() {
   }, [filteredItems, selectedChord]);
 
   // 初回ロード時などに有効なコードをセットする
-  useEffect(() => {
-    if (availableChords.length > 0 && !availableChords.includes(selectedChord)) {
-      setSelectedChord(availableChords[0]);
-    }
-  }, [availableChords, selectedChord]);
+  if (availableChords.length > 0 && !availableChords.includes(selectedChord)) {
+    setSelectedChord(availableChords[0]);
+  }
 
 
   return (
@@ -92,7 +90,7 @@ export default function MelodyChordAnalyzer() {
           </div>
           {degreeStats.sorted.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {degreeStats.sorted.map((item, i) => {
+              {degreeStats.sorted.map((item) => {
                 // コードのルート音がスケール外かどうか（雑な判定ですが#やbを含むか）
                 const isNonDiatonicChord = item.chord.includes('#') || item.chord.includes('b');
                 return (
@@ -152,7 +150,7 @@ export default function MelodyChordAnalyzer() {
           </div>
           {chordStats.sorted.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chordStats.sorted.map((item, i) => {
+              {chordStats.sorted.map((item) => {
                 const isNonDiatonic = item.degree.includes('#');
                 return (
                   <div key={item.degree} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

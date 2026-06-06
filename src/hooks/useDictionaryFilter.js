@@ -167,12 +167,12 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
     result.sort((a, b) => {
       if (filters.sortBy === 'newest') {
         // created_at が無いものは最新扱いとする（追加直後）
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 9999999999999;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 9999999999999;
         return dateB - dateA;
       } else if (filters.sortBy === 'oldest') {
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 9999999999999;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 9999999999999;
         return dateA - dateB;
       } else if (filters.sortBy === 'most_used') {
         return (b.count || 1) - (a.count || 1);

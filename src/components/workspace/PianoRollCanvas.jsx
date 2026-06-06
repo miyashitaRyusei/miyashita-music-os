@@ -13,7 +13,7 @@ import MidiMetadataModal from './MidiMetadataModal';
 // ============================================
 
 // --- 描画定数 ---
-const NOTE_HEIGHT = 8;
+
 const PIXELS_PER_SECOND = 120;
 const LEFT_MARGIN = 48;      // ピッチラベル用のマージン
 const TOP_MARGIN = 48;       // コードトラック＆小節番号用のマージン（広め）
@@ -38,6 +38,32 @@ const COLORS = {
 function isBlackKey(midi) {
   const pc = midi % 12;
   return [1, 3, 6, 8, 10].includes(pc);
+}
+
+// --- 空の状態の描画 ---
+function drawEmptyState(ctx, size) {
+  ctx.fillStyle = '#b4b4b0';
+  ctx.font = '14px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('MIDIファイルをドラッグ＆ドロップで読み込み', size.width / 2, size.height / 2 - 10);
+  ctx.font = '12px Inter, sans-serif';
+  ctx.fillStyle = '#d3d3d0';
+  ctx.fillText('.mid ファイルをここにドロップ', size.width / 2, size.height / 2 + 14);
+}
+
+// --- 角丸四角形ヘルパー ---
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 export default function PianoRollCanvas() {
@@ -339,31 +365,6 @@ export default function PianoRollCanvas() {
 
   }, [canvasSize, midiData, scrollX, selectedNotes, selectedRegion, isDragging, dragStartData, dragEndData, playbackCursor, isDragOver, parsedChords]);
 
-  // --- 空の状態の描画 ---
-  function drawEmptyState(ctx, size) {
-    ctx.fillStyle = '#b4b4b0';
-    ctx.font = '14px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('MIDIファイルをドラッグ＆ドロップで読み込み', size.width / 2, size.height / 2 - 10);
-    ctx.font = '12px Inter, sans-serif';
-    ctx.fillStyle = '#d3d3d0';
-    ctx.fillText('.mid ファイルをここにドロップ', size.width / 2, size.height / 2 + 14);
-  }
-
-  // --- 角丸四角形ヘルパー ---
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-  }
 
   // --- マウスイベント ---
   const handleMouseDown = (e) => {
@@ -565,7 +566,10 @@ export default function PianoRollCanvas() {
       });
     }
   };
-  togglePlaybackRef.current = togglePlayback;
+
+  useEffect(() => {
+    togglePlaybackRef.current = togglePlayback;
+  });
 
   return (
     <div className="piano-roll-wrapper">

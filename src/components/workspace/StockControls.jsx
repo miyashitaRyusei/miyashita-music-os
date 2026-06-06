@@ -10,7 +10,7 @@ const SECTIONS = [
   { id: '間奏', label: '間奏' },
 ];
 
-export default function StockControls({ onStockPitch, onStockRhythm, onStockChord }) {
+export default function StockControls() {
   const { stockAttributes, setStockSource, setStockPreference, setStockSection } = useAppStore();
 
   return (

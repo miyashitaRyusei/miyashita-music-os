@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 export default function Drawer({ isOpen, onClose, title, children }) {
   // ESCキーで閉じる

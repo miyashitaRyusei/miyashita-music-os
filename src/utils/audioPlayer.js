@@ -191,7 +191,7 @@ export async function playChordProgression(chords, onEnd) {
     let prevChroma = -1;
     
     // コードパースに成功した場合は構成音を取得、失敗した場合はルート音のみとする
-    let notes = [];
+    let notes;
     if (chordData.empty) {
       // プレーンな文字列（'C'など）だけでもパースは成功するが、
       // 万が一失敗した場合はそのまま4オクターブ目を付ける
