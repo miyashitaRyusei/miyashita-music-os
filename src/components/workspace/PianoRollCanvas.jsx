@@ -81,6 +81,19 @@ export default function PianoRollCanvas() {
     return Math.round(pitchRange.max - pitchFromTop);
   }, [midiData, canvasSize.height]);
 
+  const timeToX = useCallback((time) => {
+    return LEFT_MARGIN + time * PIXELS_PER_SECOND - scrollX;
+  }, [scrollX]);
+
+  const pitchToY = useCallback((midiPitch) => {
+    if (!midiData) return 0;
+    const { pitchRange } = midiData;
+    const drawableHeight = canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN;
+    const totalPitches = pitchRange.max - pitchRange.min + 1;
+    const pitchOffset = pitchRange.max - midiPitch;
+    return TOP_MARGIN + (pitchOffset / totalPitches) * drawableHeight;
+  }, [midiData, canvasSize.height]);
+
   // --- コンテナサイズ監視 ---
   useEffect(() => {
     const container = containerRef.current;
@@ -123,16 +136,6 @@ export default function PianoRollCanvas() {
     const drawableHeight = canvasSize.height - TOP_MARGIN - BOTTOM_MARGIN;
     const totalPitches = pitchRange.max - pitchRange.min + 1;
     const pitchHeight = drawableHeight / totalPitches;
-
-    // ヘルパー: ピッチ → Y座標
-    const pitchToY = (midi) => {
-      return TOP_MARGIN + (pitchRange.max - midi) / totalPitches * drawableHeight;
-    };
-
-    // ヘルパー: 時間 → X座標
-    const timeToX = (time) => {
-      return LEFT_MARGIN + time * PIXELS_PER_SECOND - scrollX;
-    };
 
     // --- 黒鍵の背景ストライプ ---
     for (let p = pitchRange.min; p <= pitchRange.max; p++) {
