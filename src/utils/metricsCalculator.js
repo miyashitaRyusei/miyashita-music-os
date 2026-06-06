@@ -32,15 +32,15 @@ export function calculateMetrics(pitchPatterns, rhythmPatterns) {
   };
 
   pitchPatterns.forEach(p => {
-    if (p.source === 'original') groups.original.pitch.push(p);
-    else if (p.preference === 'like') groups.like.pitch.push(p);
-    else if (p.preference === 'dislike') groups.dislike.pitch.push(p);
+    if (p.source === 'original' || p.source === '自作曲') groups.original.pitch.push(p);
+    else if (p.preference === 'like' || p.preference === '好き') groups.like.pitch.push(p);
+    else if (p.preference === 'dislike' || p.preference === '嫌い') groups.dislike.pitch.push(p);
   });
 
   rhythmPatterns.forEach(r => {
-    if (r.source === 'original') groups.original.rhythm.push(r);
-    else if (r.preference === 'like') groups.like.rhythm.push(r);
-    else if (r.preference === 'dislike') groups.dislike.rhythm.push(r);
+    if (r.source === 'original' || r.source === '自作曲') groups.original.rhythm.push(r);
+    else if (r.preference === 'like' || r.preference === '好き') groups.like.rhythm.push(r);
+    else if (r.preference === 'dislike' || r.preference === '嫌い') groups.dislike.rhythm.push(r);
   });
 
   // ========== ヒストグラム計算 ==========
