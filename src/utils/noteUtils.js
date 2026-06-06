@@ -109,7 +109,26 @@ export function extractRhythmArray(notes, measureDuration) {
 
   // 最初のノートが属する小節の頭をt=0とする
   const firstNoteTime = sorted[0].time;
-  const baseDownbeat = findDownbeat(firstNoteTime, measureDuration);
+  let baseDownbeat = findDownbeat(firstNoteTime, measureDuration);
+
+  if (measureDuration > 0) {
+    const timeInMeasure = firstNoteTime - baseDownbeat;
+    // 条件1: 3拍目頭以降（小節の後半以降）に最初のノートが出現する
+    const startsInSecondHalf = timeInMeasure >= measureDuration / 2;
+    
+    // 次の小節の頭
+    const nextDownbeat = baseDownbeat + measureDuration;
+
+    // 条件2: フレーズの終わりが次の小節の頭（1拍目）を跨いでいるか、
+    // あるいは次の小節以降に開始するノートが存在するか
+    const phraseEndTime = Math.max(...sorted.map(n => n.time + n.duration));
+    const reachesNextMeasure = phraseEndTime > nextDownbeat + 0.001;
+
+    // 両方の条件を満たす場合、次の小節の頭を基準（t=0）とする（アウフタクトになる）
+    if (startsInSecondHalf && reachesNextMeasure) {
+      baseDownbeat = nextDownbeat;
+    }
+  }
 
   return sorted.map((note) => {
     const relTime = toRelativeTime(note.time, baseDownbeat);
