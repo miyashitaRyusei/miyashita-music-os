@@ -21,7 +21,8 @@ const useAppStore = create((set, get) => ({
         { data: songs },
         { data: pitches },
         { data: rhythms },
-        { data: chords }
+        { data: chords },
+        { data: relations }
       ] = await Promise.all([
         supabase.from('songs').select('*').order('imported_at', { ascending: false }),
         supabase.from('pitch_patterns').select('*').order('created_at', { ascending: false }),
