@@ -24,7 +24,14 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
   };
 
   // ダイアトニックコード（Cメジャー基準）の判定
-  const diatonicChords = ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 'CM7', 'Dm7', 'Em7', 'FM7', 'G7', 'Am7', 'Bm7b5'];
+  const diatonicChords = [
+    'C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 
+    'CM7', 'Cmaj7', 'Cmaj',
+    'Dm7', 'Em7', 
+    'FM7', 'Fmaj7', 'Fmaj',
+    'G7', 'Am7', 
+    'Bm7b5', 'Bm7-5'
+  ];
   const isNonDiatonic = (chord) => {
     return !diatonicChords.includes(chord);
   };
