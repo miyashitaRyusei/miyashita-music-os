@@ -114,13 +114,14 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
         display: 'flex', 
         gap: '8px', 
         overflowX: 'auto', 
-        alignItems: 'center', 
+        alignItems: 'center',
+        justifyContent: 'flex-start',
         background: 'var(--bg-primary)'
       }}>
         {measures.map((measure, mIndex) => (
           <div key={mIndex} style={{ 
             display: 'flex', 
-            width: '160px', // 1小節の固定幅
+            width: '200px', // 1小節の固定幅を広げる（文字あふれ対策）
             height: '40px',
             border: '1px solid var(--border-strong)',
             borderRadius: '4px',
@@ -145,7 +146,8 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
                 background: isNonDiatonic(c.name) ? 'rgba(242, 153, 74, 0.1)' : 'var(--bg-primary)',
                 color: isNonDiatonic(c.name) ? 'var(--accent-orange)' : 'var(--text-primary)',
                 fontWeight: isNonDiatonic(c.name) ? 'bold' : '600',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
+                whiteSpace: 'nowrap',
                 position: 'relative',
                 zIndex: 1
               }}>
