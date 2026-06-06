@@ -3,6 +3,7 @@ import useAppStore from '../../store/useAppStore';
 import { playPitchSequence, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
+import PitchAdvancedFilter from './PitchAdvancedFilter';
 
 // 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
 function degreeToValue(degreeStr) {
@@ -151,11 +152,16 @@ function PitchPatternItem({ pattern }) {
 
 export default function PitchList() {
   const pitchPatterns = useAppStore((s) => s.pitchPatterns);
-  const { filters, setFilters, filteredItems } = useDictionaryFilter(pitchPatterns);
+  const { filters, setFilters, advancedFilters, setAdvancedFilters, filteredItems } = useDictionaryFilter(pitchPatterns, 'pitch');
 
   return (
     <div>
-      <CommonFilter filters={filters} setFilters={setFilters} />
+      <CommonFilter filters={filters} setFilters={setFilters}>
+        <PitchAdvancedFilter 
+          advancedFilters={advancedFilters} 
+          setAdvancedFilters={setAdvancedFilters} 
+        />
+      </CommonFilter>
       <div className="dict-grid">
         {filteredItems.length > 0 ? (
           filteredItems.map((pattern, i) => (

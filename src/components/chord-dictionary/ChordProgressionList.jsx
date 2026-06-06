@@ -3,6 +3,7 @@ import useAppStore from '../../store/useAppStore';
 import { playChordProgression, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
+import ChordAdvancedFilter from './ChordAdvancedFilter';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
   // バッジのスタイル計算
@@ -86,7 +87,7 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
 
 export default function ChordProgressionList() {
   const chordProgressions = useAppStore((s) => s.chordProgressions) || [];
-  const { filters, setFilters, filteredItems } = useDictionaryFilter(chordProgressions);
+  const { filters, setFilters, advancedFilters, setAdvancedFilters, filteredItems } = useDictionaryFilter(chordProgressions, 'chord');
   const [playingId, setPlayingId] = useState(null);
 
   const handlePlayToggle = async (progression) => {
@@ -106,7 +107,12 @@ export default function ChordProgressionList() {
 
   return (
     <div>
-      <CommonFilter filters={filters} setFilters={setFilters} />
+      <CommonFilter filters={filters} setFilters={setFilters}>
+        <ChordAdvancedFilter 
+          advancedFilters={advancedFilters} 
+          setAdvancedFilters={setAdvancedFilters} 
+        />
+      </CommonFilter>
       <div className="stagger">
         {filteredItems.length > 0 ? (
           filteredItems.map((prog) => (

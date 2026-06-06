@@ -3,6 +3,7 @@ import useAppStore from '../../store/useAppStore';
 import { playRhythmSequence, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
+import RhythmAdvancedFilter from './RhythmAdvancedFilter';
 
 function RhythmPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -136,11 +137,16 @@ function RhythmPatternItem({ pattern }) {
 
 export default function RhythmList() {
   const rhythmPatterns = useAppStore((s) => s.rhythmPatterns);
-  const { filters, setFilters, filteredItems } = useDictionaryFilter(rhythmPatterns);
+  const { filters, setFilters, advancedFilters, setAdvancedFilters, filteredItems } = useDictionaryFilter(rhythmPatterns, 'rhythm');
 
   return (
     <div>
-      <CommonFilter filters={filters} setFilters={setFilters} />
+      <CommonFilter filters={filters} setFilters={setFilters}>
+        <RhythmAdvancedFilter 
+          advancedFilters={advancedFilters} 
+          setAdvancedFilters={setAdvancedFilters} 
+        />
+      </CommonFilter>
       <div className="dict-grid">
         {filteredItems.length > 0 ? (
           filteredItems.map((pattern, i) => (

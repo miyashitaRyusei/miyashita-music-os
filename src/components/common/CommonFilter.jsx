@@ -1,7 +1,10 @@
+import React, { useState } from 'react';
 import useAppStore from '../../store/useAppStore';
+import Drawer from '../ui/Drawer';
 
-export default function CommonFilter({ filters, setFilters }) {
+export default function CommonFilter({ filters, setFilters, children }) {
   const registeredSongs = useAppStore((s) => s.registeredSongs);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -106,6 +109,28 @@ export default function CommonFilter({ filters, setFilters }) {
         </div>
 
       </div>
+
+      {children && (
+        <div style={{ marginTop: '16px' }}>
+          <button 
+            className="btn btn--secondary" 
+            onClick={() => setIsDrawerOpen(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <span>⚙️</span> 高度な絞り込み
+          </button>
+        </div>
+      )}
+
+      {children && (
+        <Drawer 
+          isOpen={isDrawerOpen} 
+          onClose={() => setIsDrawerOpen(false)} 
+          title="高度な絞り込み"
+        >
+          {children}
+        </Drawer>
+      )}
     </div>
   );
 }
