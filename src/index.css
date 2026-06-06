@@ -1616,16 +1616,17 @@ ul, ol {
 .rhythm-timeline {
   position: relative;
   width: 100%;
-  height: 32px;
+  height: 40px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin: 12px 0; /* レーンの上下に余裕を持たせる */
 }
 
 .rhythm-timeline__grid {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: -8px; /* レーンを突き抜けるようにする */
+  bottom: -8px;
   width: 1px;
   background: var(--border-strong);
   z-index: 0;
@@ -1645,11 +1646,12 @@ ul, ol {
 
 .rhythm-timeline__block {
   position: absolute;
-  top: 0;
-  height: 100%;
+  top: 6px; /* レーンの中で少し上下に隙間をあける */
+  bottom: 6px;
   background: var(--accent-blue);
   border-radius: 4px;
-  border: 1px solid var(--bg-primary); /* 重なったときの境界線 */
+  border-right: 2px solid var(--bg-tertiary); /* ノート同士の境界にレーンと同じ色の太めの隙間を作る */
+  box-sizing: border-box;
   box-shadow: 0 2px 4px rgba(35, 131, 226, 0.2);
   display: flex;
   align-items: center;
