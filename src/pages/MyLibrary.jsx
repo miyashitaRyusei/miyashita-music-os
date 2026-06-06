@@ -7,6 +7,10 @@ export default function MyLibrary() {
   const [songs, setSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // 検索・フィルター関連
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
+  
   // アップロード関連
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -167,6 +171,15 @@ export default function MyLibrary() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // --- フィルタリング ---
+  const allTags = Array.from(new Set(songs.flatMap(s => s.tags || []))).sort();
+
+  const filteredSongs = songs.filter(song => {
+    const matchSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchTag = selectedTag ? (song.tags && song.tags.includes(selectedTag)) : true;
+    return matchSearch && matchTag;
+  });
+
   return (
     <div className="container" style={{ padding: '24px 0', maxWidth: '1000px', margin: '0 auto' }}>
       
@@ -261,13 +274,41 @@ export default function MyLibrary() {
       <div className="glass-panel" style={{ padding: '32px' }}>
         <h2 style={{ fontSize: '1.4rem', marginBottom: '24px' }}>ストック済み（{songs.length}曲）</h2>
         
+        {songs.length > 0 && (
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <input 
+              type="text" 
+              className="select-input" 
+              placeholder="🔍 曲名で検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ padding: '10px 16px', flex: 1, minWidth: '200px' }}
+            />
+            {allTags.length > 0 && (
+              <select 
+                className="select-input"
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                style={{ padding: '10px 16px', minWidth: '150px' }}
+              >
+                <option value="">すべてのタグ</option>
+                {allTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
         {isLoading ? (
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>読み込み中...</p>
         ) : songs.length === 0 ? (
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '32px 0' }}>まだ曲がありません。上のエリアからアップロードしてみましょう！</p>
+        ) : filteredSongs.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '32px 0' }}>条件に一致する曲が見つかりませんでした。</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {songs.map(song => (
+            {filteredSongs.map(song => (
               <div key={song.id} style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
