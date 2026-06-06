@@ -211,8 +211,14 @@ export default function PianoRollCanvas() {
           const labelWidth = Math.max(textWidth + 16, 32);
           const centerX = x + w / 2;
           
+          // 選択状態の判定
+          let isSelected = false;
+          if (selectedRegion) {
+            isSelected = chordTime < selectedRegion.endTime && (chordTime + timePerChord) > selectedRegion.startTime;
+          }
+
           if (centerX >= LEFT_MARGIN && centerX <= canvasSize.width) {
-            ctx.fillStyle = '#e03131'; // 赤
+            ctx.fillStyle = isSelected ? '#2383e2' : '#e03131'; // 選択時は青、それ以外は赤
             roundRect(ctx, centerX - labelWidth / 2, 16, labelWidth, 20, 4);
             ctx.fill();
 
@@ -409,8 +415,14 @@ export default function PianoRollCanvas() {
     // 時間/ピッチ座標から選択範囲を決定
     const startTime = Math.min(dragStartData.time, dragEndData.time);
     const endTime = Math.max(dragStartData.time, dragEndData.time);
-    const topPitch = Math.max(dragStartData.pitch, dragEndData.pitch);
-    const bottomPitch = Math.min(dragStartData.pitch, dragEndData.pitch);
+    let topPitch = Math.max(dragStartData.pitch, dragEndData.pitch);
+    let bottomPitch = Math.min(dragStartData.pitch, dragEndData.pitch);
+
+    // コードエリア内でドラッグした場合は「時間軸全体」を選択したとみなす（全ピッチ選択）
+    if (dragStartData.pitch >= midiData.pitchRange.max && dragEndData.pitch >= midiData.pitchRange.max) {
+      bottomPitch = 0;
+      topPitch = 127;
+    }
 
     setSelectedRegion({
       startTime: Math.max(0, startTime),
