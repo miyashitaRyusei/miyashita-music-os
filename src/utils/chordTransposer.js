@@ -7,6 +7,31 @@ const ROOT_TO_INDEX = {
 // Cメジャーで表記する際の一般的なルート名
 const INDEX_TO_ROOT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
+// ベース音の異名同音をルート音の文脈に合わせて最適化する
+function getBassSpelling(bassIndex, rootName) {
+  if (bassIndex === 1) { // C# or Db
+    if (['A', 'F#', 'B', 'E'].includes(rootName)) return 'C#';
+    return 'Db';
+  }
+  if (bassIndex === 3) { // D# or Eb
+    if (['B', 'E', 'F#'].includes(rootName)) return 'D#';
+    return 'Eb';
+  }
+  if (bassIndex === 6) { // F# or Gb
+    if (['Db', 'Ab', 'Eb'].includes(rootName)) return 'Gb';
+    return 'F#';
+  }
+  if (bassIndex === 8) { // G# or Ab
+    if (['E', 'A', 'B', 'F#'].includes(rootName)) return 'G#';
+    return 'Ab';
+  }
+  if (bassIndex === 10) { // A# or Bb
+    if (['F#', 'B', 'E'].includes(rootName)) return 'A#';
+    return 'Bb';
+  }
+  return INDEX_TO_ROOT[bassIndex];
+}
+
 /**
  * ひとつのコード名を指定されたOriginal KeyからCメジャー基準に移調する
  * 例: transposeChord('Gmaj7', 'D') -> 'Fmaj7'
@@ -44,7 +69,7 @@ export function transposeChord(chordName, originalKey) {
     const bassIndex = ROOT_TO_INDEX[bassNote];
     if (bassIndex !== undefined) {
       const newBassIndex = (bassIndex + offset + 12) % 12;
-      const transposedBass = INDEX_TO_ROOT[newBassIndex];
+      const transposedBass = getBassSpelling(newBassIndex, transposedRoot);
       modifier = modifier.replace(`/${bassNote}`, `/${transposedBass}`);
     }
   }
