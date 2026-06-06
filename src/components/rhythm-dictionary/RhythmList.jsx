@@ -71,14 +71,23 @@ function RhythmPatternItem({ pattern }) {
           <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '' }}>
             {isPlaying ? '■' : '▶'}
           </span>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="dict-card__id">{pattern.id || pattern.description || 'Rhythm'}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+            <span className="dict-card__id" style={{ 
+              whiteSpace: 'nowrap', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis', 
+              maxWidth: '180px',
+              display: 'inline-block',
+              verticalAlign: 'bottom'
+            }} title={pattern.id || pattern.description || 'Rhythm'}>
+              {pattern.id || pattern.description || 'Rhythm'}
+            </span>
             {pattern.description && pattern.description !== '自動抽出パターン' && (
-              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{pattern.description}</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pattern.description}</span>
             )}
           </div>
           {pattern.count > 1 && (
-            <span className="badge badge--orange">×{pattern.count}</span>
+            <span className="badge badge--orange" style={{ flexShrink: 0 }}>×{pattern.count}</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -128,7 +137,14 @@ function RhythmPatternItem({ pattern }) {
 
           {/* 音符ブロック */}
           {timings.map((t, i) => {
-            const isNonDiatonic = t.degreeName && t.degreeName.includes('#');
+            // シンコペーション（食い）の判定
+            // オフビートで始まり、拍の境界（0.25の倍数）をまたぐノート
+            const start = t.normalizedTime;
+            const end = start + t.normalizedDuration;
+            const isOffBeat = Math.abs(start % 0.25) > 0.01 && Math.abs((start % 0.25) - 0.25) > 0.01;
+            const crossesBeat = Math.floor(start / 0.25) < Math.floor((end - 0.01) / 0.25);
+            const isSyncopated = isOffBeat && crossesBeat;
+
             return (
               <div
                 key={i}
@@ -136,24 +152,20 @@ function RhythmPatternItem({ pattern }) {
                 style={{
                   left: `${getLeftPct(t.normalizedTime)}%`,
                   width: `${Math.max(1, getWidthPct(t.normalizedDuration))}%`,
-                  background: isNonDiatonic ? 'var(--accent-orange)' : undefined,
-                  color: isNonDiatonic ? '#fff' : undefined,
+                  background: isSyncopated ? 'var(--accent-orange)' : undefined,
+                  boxShadow: isSyncopated ? '0 0 8px rgba(245, 166, 35, 0.4)' : undefined,
+                  borderRadius: '4px',
                 }}
-              >
-                <span className="rhythm-timeline__label" style={{ fontWeight: isNonDiatonic ? 'bold' : 'normal' }}>
-                  {t.degreeName}
-                </span>
-              </div>
+                title={isSyncopated ? 'シンコペーション（食い）' : ''}
+              />
             );
           })}
         </div>
       </div>
 
-      <div className="dict-card__meta">
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
-          <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
-        </div>
+      <div className="dict-card__meta" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+        <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
+        <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
         {pattern.section && (
           <span className={`badge-tag ${getSectionClass(pattern.section)}`}>
             {pattern.section.replace('_', ' ')}
