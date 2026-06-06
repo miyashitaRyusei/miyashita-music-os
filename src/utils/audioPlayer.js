@@ -135,14 +135,21 @@ export async function playRhythmSequence(timings, onEnd) {
  * @param {Array} notes - { name: 'C4', time: 0, duration: 1 } のような形式の配列
  * @param {number} startSeconds - 再生開始位置（秒）
  * @param {number} playbackRate - 再生速度の倍率（例: 1.5 なら1.5倍速）
- * @param {Function} onEnd - 再生完了時のコールバック
+ * @param {Array} chordsToPlay - { name: 'C', time: 0, duration: 2.0 } のような形式の配列
  */
-export async function playMidiNotes(notes, startSeconds = 0, playbackRate = 1.0, onEnd) {
+export async function playMidiNotes(notes, startSeconds = 0, playbackRate = 1.0, onEnd, chordsToPlay = []) {
   stopAudio();
   await initTone();
 
   const now = Tone.now();
   let maxEndTime = 0;
+
+  let Chord, Note;
+  if (chordsToPlay && chordsToPlay.length > 0) {
+    const tonal = await import('@tonaljs/tonal');
+    Chord = tonal.Chord;
+    Note = tonal.Note;
+  }
 
   notes.forEach((note) => {
     // 再生開始位置より前に終わっているノートは無視
@@ -163,6 +170,44 @@ export async function playMidiNotes(notes, startSeconds = 0, playbackRate = 1.0,
       maxEndTime = startTime + scaledDuration;
     }
   });
+
+  if (chordsToPlay && chordsToPlay.length > 0) {
+    chordsToPlay.forEach((chord) => {
+      if (chord.time + chord.duration <= startSeconds) return;
+
+      const playOffset = chord.time < startSeconds ? 0 : chord.time - startSeconds;
+      const playDuration = chord.time < startSeconds ? chord.duration - (startSeconds - chord.time) : chord.duration;
+      
+      const scaledOffset = playOffset / playbackRate;
+      const scaledDuration = playDuration / playbackRate;
+      const startTime = now + scaledOffset;
+
+      const chordData = Chord.get(chord.name);
+      let currentOctave = 3; // メロディの邪魔にならないよう少し低め
+      let prevChroma = -1;
+      let chordNotes;
+
+      if (chordData.empty) {
+        chordNotes = [chord.name + '3'];
+      } else {
+        chordNotes = chordData.notes.map((n) => {
+          const chroma = Note.chroma(n);
+          if (chroma < prevChroma) {
+            currentOctave++;
+          }
+          prevChroma = chroma;
+          return n + currentOctave;
+        });
+      }
+
+      // コードは伴奏なのでベロシティ(音量)を0.4に下げてスタッカート気味に鳴らす
+      synth.triggerAttackRelease(chordNotes, scaledDuration * 0.9, startTime, 0.4);
+
+      if (startTime + scaledDuration > maxEndTime) {
+        maxEndTime = startTime + scaledDuration;
+      }
+    });
+  }
 
   if (onEnd && maxEndTime > 0) {
     currentTimeoutId = setTimeout(() => {

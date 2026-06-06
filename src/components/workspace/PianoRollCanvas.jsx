@@ -3,6 +3,7 @@ import useAppStore from '../../store/useAppStore';
 import { parseMidiFile, readFileAsArrayBuffer } from '../../utils/midiParser';
 import { midiToNoteName, transposeToC } from '../../utils/noteUtils';
 import { playMidiNotes, stopAudio } from '../../utils/audioPlayer';
+import { transposeChord, getEffectiveKeyForMeasure } from '../../utils/chordTransposer';
 import MidiMetadataModal from './MidiMetadataModal';
 
 // ============================================
@@ -77,6 +78,7 @@ export default function PianoRollCanvas() {
   const selectedRegion = useAppStore((s) => s.selectedRegion);
   const setSelectedRegion = useAppStore((s) => s.setSelectedRegion);
   const parsedChords = useAppStore((s) => s.parsedChords);
+  const stockAttributes = useAppStore((s) => s.stockAttributes);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartData, setDragStartData] = useState(null); // { time, pitch }
@@ -561,9 +563,35 @@ export default function PianoRollCanvas() {
       // ノートのtime/durationはインポート時に現在のBPMに合わせてスケーリング済みなので等倍再生でOK
       const playbackRate = 1.0;
 
+      // コード進行データも一緒に渡すための配列を生成
+      const chordsToPlay = [];
+      if (parsedChords && parsedChords.length > 0 && midiData.measureDuration) {
+        parsedChords.forEach(m => {
+          const chordsInMeasure = m.chords.length;
+          if (chordsInMeasure === 0) return;
+          const timePerChord = midiData.measureDuration / chordsInMeasure;
+          
+          m.chords.forEach((chord, i) => {
+            const time = (m.measure - 1) * midiData.measureDuration + i * timePerChord;
+            // 転調後のコード名を取得（表示されているもの）
+            // UI上の「parsedChords」は常にC基準かoriginalKey基準かの移調が掛かっているが、
+            // 実際に鳴らすべきコードは `midiData` (C基準にトランスポーズ済み) に合わせる。
+            // Workspaceの handleStockMelodyChordRelations を参考にeffectiveKeyを計算
+            const effectiveKey = getEffectiveKeyForMeasure(m.measure - 1, parsedChords, stockAttributes.originalKey);
+            const transposedChordName = transposeChord(chord.name, effectiveKey);
+            
+            chordsToPlay.push({
+              name: transposedChordName,
+              time: time,
+              duration: timePerChord
+            });
+          });
+        });
+      }
+
       await playMidiNotes(midiData.notes, playbackCursor, playbackRate, () => {
         setIsPlaying(false);
-      });
+      }, chordsToPlay);
     }
   };
 
