@@ -114,18 +114,25 @@ function RhythmPatternItem({ pattern }) {
           })}
 
           {/* 音符ブロック */}
-          {timings.map((t, i) => (
-            <div
-              key={i}
-              className="rhythm-timeline__block"
-              style={{
-                left: `${getLeftPct(t.normalizedTime)}%`,
-                width: `${Math.max(1, getWidthPct(t.normalizedDuration))}%`,
-              }}
-            >
-              <span className="rhythm-timeline__label">{t.degreeName}</span>
-            </div>
-          ))}
+          {timings.map((t, i) => {
+            const isNonDiatonic = t.degreeName && t.degreeName.includes('#');
+            return (
+              <div
+                key={i}
+                className="rhythm-timeline__block"
+                style={{
+                  left: `${getLeftPct(t.normalizedTime)}%`,
+                  width: `${Math.max(1, getWidthPct(t.normalizedDuration))}%`,
+                  background: isNonDiatonic ? 'var(--accent-orange)' : undefined,
+                  color: isNonDiatonic ? '#fff' : undefined,
+                }}
+              >
+                <span className="rhythm-timeline__label" style={{ fontWeight: isNonDiatonic ? 'bold' : 'normal' }}>
+                  {t.degreeName}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

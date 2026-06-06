@@ -92,10 +92,19 @@ export default function MelodyChordAnalyzer() {
           </div>
           {degreeStats.sorted.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {degreeStats.sorted.map((item, i) => (
-                <div key={item.chord} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '60px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{item.chord}</div>
-                  <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
+              {degreeStats.sorted.map((item, i) => {
+                // コードのルート音がスケール外かどうか（雑な判定ですが#やbを含むか）
+                const isNonDiatonicChord = item.chord.includes('#') || item.chord.includes('b');
+                return (
+                  <div key={item.chord} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ 
+                      width: '60px', 
+                      fontWeight: 'bold', 
+                      color: isNonDiatonicChord ? 'var(--accent-orange)' : 'var(--text-primary)' 
+                    }}>
+                      {item.chord}
+                    </div>
+                    <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
                     <div style={{ 
                       width: `${item.percentage}%`, 
                       height: '100%', 
@@ -107,7 +116,8 @@ export default function MelodyChordAnalyzer() {
                     {Math.round(item.percentage)}%
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           ) : (
             <div className="empty-state">データがありません</div>
@@ -142,12 +152,20 @@ export default function MelodyChordAnalyzer() {
           </div>
           {chordStats.sorted.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chordStats.sorted.map((item, i) => (
-                <div key={item.degree} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '60px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{item.degree}</div>
-                  <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
+              {chordStats.sorted.map((item, i) => {
+                const isNonDiatonic = item.degree.includes('#');
+                return (
+                  <div key={item.degree} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ 
-                      width: `${item.percentage}%`, 
+                      width: '60px', 
+                      fontWeight: 'bold', 
+                      color: isNonDiatonic ? 'var(--accent-orange)' : 'var(--text-primary)' 
+                    }}>
+                      {item.degree}
+                    </div>
+                    <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${item.percentage}%`, 
                       height: '100%', 
                       background: 'var(--accent-purple)', 
                       transition: 'width 0.3s ease' 
@@ -155,9 +173,9 @@ export default function MelodyChordAnalyzer() {
                   </div>
                   <div style={{ width: '40px', textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     {Math.round(item.percentage)}%
-                  </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           ) : (
             <div className="empty-state">データがありません</div>

@@ -119,19 +119,30 @@ function PitchPatternItem({ pattern }) {
           <polyline points={points} className="pitch-sparkline__line" />
           
           {/* プロット点と音名ラベル */}
-          {values.map((val, i) => (
-            <g key={i}>
-              <circle cx={getX(i)} cy={getY(val)} r="4" className="pitch-sparkline__point" />
-              <text 
-                x={getX(i)} 
-                y={getY(val) + (val >= (maxVal + minVal) / 2 ? 16 : -10)} // 上下位置の調整
-                className="pitch-sparkline__label"
-                textAnchor="middle"
-              >
-                {pattern.degrees[i]}
-              </text>
-            </g>
-          ))}
+          {values.map((val, i) => {
+            const degreeStr = pattern.degrees[i];
+            const isNonDiatonic = degreeStr.includes('#');
+            const color = isNonDiatonic ? 'var(--accent-orange)' : 'currentColor';
+            
+            return (
+              <g key={i}>
+                <circle cx={getX(i)} cy={getY(val)} r="4" 
+                  className="pitch-sparkline__point" 
+                  fill={color} 
+                />
+                <text 
+                  x={getX(i)} 
+                  y={getY(val) + (val >= (maxVal + minVal) / 2 ? 16 : -10)} // 上下位置の調整
+                  className={`pitch-sparkline__label ${isNonDiatonic ? 'pitch-sparkline__label--nondiatonic' : ''}`}
+                  textAnchor="middle"
+                  fill={color}
+                  fontWeight={isNonDiatonic ? 'bold' : 'normal'}
+                >
+                  {degreeStr}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
 
