@@ -182,26 +182,12 @@ export async function playMidiNotes(notes, startSeconds = 0, playbackRate = 1.0,
       const scaledDuration = playDuration / playbackRate;
       const startTime = now + scaledOffset;
 
-      const chordData = Chord.get(chord.name);
-      let currentOctave = 3; // メロディの邪魔にならないよう少し低め
-      let prevChroma = -1;
-      let chordNotes;
+      const chordNotes = parseChordToNotes(chord.name, 3, Chord, Note);
 
-      if (chordData.empty) {
-        chordNotes = [chord.name + '3'];
-      } else {
-        chordNotes = chordData.notes.map((n) => {
-          const chroma = Note.chroma(n);
-          if (chroma < prevChroma) {
-            currentOctave++;
-          }
-          prevChroma = chroma;
-          return n + currentOctave;
-        });
+      if (chordNotes.length > 0) {
+        // コードは伴奏なのでベロシティ(音量)を0.4に下げてスタッカート気味に鳴らす
+        synth.triggerAttackRelease(chordNotes, scaledDuration * 0.9, startTime, 0.4);
       }
-
-      // コードは伴奏なのでベロシティ(音量)を0.4に下げてスタッカート気味に鳴らす
-      synth.triggerAttackRelease(chordNotes, scaledDuration * 0.9, startTime, 0.4);
 
       if (startTime + scaledDuration > maxEndTime) {
         maxEndTime = startTime + scaledDuration;
@@ -231,30 +217,12 @@ export async function playChordProgression(chords, onEnd) {
   const stepTime = 1.0; // 1秒ごとに1コード
   
   chords.forEach((chordName, i) => {
-    const chordData = Chord.get(chordName);
-    let currentOctave = 4;
-    let prevChroma = -1;
-    
-    // コードパースに成功した場合は構成音を取得、失敗した場合はルート音のみとする
-    let notes;
-    if (chordData.empty) {
-      // プレーンな文字列（'C'など）だけでもパースは成功するが、
-      // 万が一失敗した場合はそのまま4オクターブ目を付ける
-      notes = [chordName + '4'];
-    } else {
-      // 転回形を防ぎ、ルートから上に向かって積み上げるためのオクターブ調整
-      notes = chordData.notes.map((note) => {
-        const chroma = Note.chroma(note);
-        if (chroma < prevChroma) {
-          currentOctave++;
-        }
-        prevChroma = chroma;
-        return note + currentOctave;
-      });
-    }
+    const chordNotes = parseChordToNotes(chordName, 4, Chord, Note);
 
-    // ポリフォニックで和音を発音（90%の時間だけ鳴らしてスタッカート感を出す）
-    synth.triggerAttackRelease(notes, stepTime * 0.9, now + i * stepTime);
+    if (chordNotes.length > 0) {
+      // ポリフォニックで和音を発音（90%の時間だけ鳴らしてスタッカート感を出す）
+      synth.triggerAttackRelease(chordNotes, stepTime * 0.9, now + i * stepTime);
+    }
   });
 
   if (onEnd) {
@@ -263,4 +231,50 @@ export async function playChordProgression(chords, onEnd) {
       currentTimeoutId = null;
     }, chords.length * stepTime * 1000 + 200);
   }
+}
+
+/**
+ * コード名をノートの配列に変換するヘルパー関数
+ * スラッシュコードや、Tonalでパースできない不正なコードへのフォールバックを含む
+ */
+function parseChordToNotes(chordString, initialOctave, Chord, Note) {
+  let chordName = chordString;
+  let bassNote = null;
+  
+  // スラッシュコードの判定 (例: C/B, ConE)
+  const slashMatch = chordName.match(/^([A-G][#b]?[^/]*)(?:\/|on)([A-G][#b]?)$/i);
+  if (slashMatch) {
+    chordName = slashMatch[1];
+    bassNote = slashMatch[2];
+  }
+
+  const chordData = Chord.get(chordName);
+  let currentOctave = initialOctave;
+  let prevChroma = -1;
+  let chordNotes = [];
+
+  if (chordData.empty) {
+    // パースできない場合、最初のルート音（A-G）だけ抽出してみる
+    const fallbackMatch = chordName.match(/^[A-G][#b]?/i);
+    if (fallbackMatch) {
+      chordNotes = [fallbackMatch[0] + initialOctave];
+    }
+  } else {
+    // 構成音を抽出
+    chordNotes = chordData.notes.map((n) => {
+      const chroma = Note.chroma(n);
+      if (chroma < prevChroma) {
+        currentOctave++;
+      }
+      prevChroma = chroma;
+      return n + currentOctave;
+    });
+  }
+
+  // ベース音があればオクターブ低くして追加
+  if (bassNote && chordNotes.length > 0) {
+    chordNotes.unshift(bassNote + (initialOctave - 1));
+  }
+
+  return chordNotes;
 }
