@@ -68,7 +68,7 @@ export default function MelodyChordAnalyzer() {
   return (
     <div>
       <CommonFilter filters={filters} setFilters={setFilters} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
       
       {/* メロディから探す */}
       <div className="workspace-section">
@@ -86,7 +86,7 @@ export default function MelodyChordAnalyzer() {
           </select>
         </div>
 
-        <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: '8px', minHeight: '300px' }}>
+        <div style={{ minHeight: '300px', padding: '0 8px' }}>
           <div style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             総サンプル数: <strong>{degreeStats.total}</strong> 件
           </div>
@@ -136,7 +136,7 @@ export default function MelodyChordAnalyzer() {
           </select>
         </div>
 
-        <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: '8px', minHeight: '300px' }}>
+        <div style={{ minHeight: '300px', padding: '0 8px' }}>
           <div style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             総サンプル数: <strong>{chordStats.total}</strong> 件
           </div>
