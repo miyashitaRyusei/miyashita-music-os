@@ -180,46 +180,63 @@ export default function MyLibrary() {
     return matchSearch && matchTag;
   });
 
-  return (
-    <div className="container" style={{ padding: '24px 0', maxWidth: '1000px', margin: '0 auto' }}>
+    <div 
+      className="container" 
+      style={{ padding: '24px 0', maxWidth: '1000px', margin: '0 auto', position: 'relative', minHeight: '80vh' }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       
-      <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-          <MusicalNoteIcon className="icon" style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
-          マイライブラリ
-        </h1>
-        <p style={{ color: 'var(--text-secondary)' }}>
-          自作曲（WavやMP3）をアップロードしてストック。どの端末からでも視聴できます。
-        </p>
-      </div>
+      {/* --- 全画面ドロップオーバーレイ --- */}
+      {isDragOver && (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '4px dashed var(--accent-blue)',
+          borderRadius: '16px',
+          color: 'var(--text-primary)',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <CloudArrowUpIcon style={{ width: '80px', height: '80px', color: 'var(--accent-blue)', marginBottom: '24px', animation: 'bounce 2s infinite' }} />
+          <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '8px' }}>ここにファイルをドロップしてアップロード</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>WavまたはMP3ファイルに対応しています</p>
+        </div>
+      )}
 
-      {/* --- アップロードエリア --- */}
-      <div 
-        className={`glass-panel ${isDragOver ? 'drag-over' : ''}`}
-        style={{ 
-          padding: '32px', 
-          marginBottom: '32px',
-          border: isDragOver ? '2px dashed var(--accent-blue)' : '2px dashed var(--border-color)',
-          transition: 'all 0.3s ease',
-          position: 'relative'
-        }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        {!selectedFile ? (
-          <div style={{ textAlign: 'center' }}>
-            <CloudArrowUpIcon style={{ width: '48px', height: '48px', color: 'var(--text-secondary)', margin: '0 auto 16px' }} />
-            <h3 style={{ marginBottom: '8px' }}>ここに音声ファイル（Wav/MP3）をドロップ</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px' }}>
-              アップロード時に自動で軽量なMP3に変換されます（通信量・容量節約）
-            </p>
-            <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
-              ファイルを選択
-              <input type="file" accept="audio/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', padding: '0 16px' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <MusicalNoteIcon className="icon" style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+            マイライブラリ
+          </h1>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            自作曲（WavやMP3）をアップロードしてストック。どの端末からでも視聴できます。
+          </p>
+        </div>
+        
+        {!selectedFile && (
+          <div>
+            <label className="btn btn-primary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '30px' }}>
+              <CloudArrowUpIcon style={{ width: '20px', height: '20px' }} />
+              <span style={{ fontWeight: 'bold' }}>新規アップロード</span>
+              <input id="file-upload-input" type="file" accept="audio/*" onChange={handleFileSelect} style={{ display: 'none' }} />
             </label>
           </div>
-        ) : (
+        )}
+      </div>
+
+      {/* --- アップロード準備フォーム（ファイル選択時のみ表示） --- */}
+      {selectedFile && (
+        <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', borderLeft: '4px solid var(--accent-blue)', animation: 'slideIn 0.3s ease-out' }}>
+
           <div style={{ maxWidth: '500px', margin: '0 auto' }}>
             <h3 style={{ marginBottom: '16px', color: 'var(--accent-blue)' }}>アップロード準備</h3>
             
@@ -267,29 +284,34 @@ export default function MyLibrary() {
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* --- ライブラリ一覧 --- */}
       <div className="glass-panel" style={{ padding: '32px' }}>
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '24px' }}>ストック済み（{songs.length}曲）</h2>
+        <h2 style={{ fontSize: '1.4rem', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          ストック済み <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>({songs.length}曲)</span>
+        </h2>
         
         {songs.length > 0 && (
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <input 
-              type="text" 
-              className="select-input" 
-              placeholder="🔍 曲名で検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ padding: '10px 16px', flex: 1, minWidth: '200px' }}
-            />
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+              <input 
+                type="text" 
+                className="select-input" 
+                placeholder="🔍 曲名で検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ padding: '12px 16px 12px 40px', width: '100%', borderRadius: '24px' }}
+              />
+              <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
+            </div>
             {allTags.length > 0 && (
               <select 
                 className="select-input"
                 value={selectedTag}
                 onChange={(e) => setSelectedTag(e.target.value)}
-                style={{ padding: '10px 16px', minWidth: '150px' }}
+                style={{ padding: '12px 24px', minWidth: '150px', borderRadius: '24px' }}
               >
                 <option value="">すべてのタグ</option>
                 {allTags.map(tag => (
@@ -301,75 +323,113 @@ export default function MyLibrary() {
         )}
 
         {isLoading ? (
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>読み込み中...</p>
+          <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <div className="loader" style={{ width: '40px', height: '40px', margin: '0 auto 16px', borderTopColor: 'var(--accent-blue)' }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>読み込み中...</p>
+          </div>
         ) : songs.length === 0 ? (
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '32px 0' }}>まだ曲がありません。上のエリアからアップロードしてみましょう！</p>
+          <div style={{ textAlign: 'center', padding: '64px 0', border: '1px dashed var(--border-strong)', borderRadius: '16px' }}>
+            <MusicalNoteIcon style={{ width: '48px', height: '48px', color: 'var(--text-secondary)', margin: '0 auto 16px' }} />
+            <h3 style={{ marginBottom: '8px' }}>まだ曲がありません</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>画面に音声ファイルをドラッグ＆ドロップしてアップロードしてみましょう！</p>
+          </div>
         ) : filteredSongs.length === 0 ? (
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '32px 0' }}>条件に一致する曲が見つかりませんでした。</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {filteredSongs.map(song => (
-              <div key={song.id} style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                padding: '16px', 
-                background: 'var(--bg-secondary)', 
-                borderRadius: '12px',
-                gap: '16px',
-                transition: 'all 0.2s',
-                boxShadow: currentPlayingId === song.id ? '0 0 0 2px var(--accent-blue)' : 'none'
-              }}>
+              <div 
+                key={song.id} 
+                className="library-list-item"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '12px 16px', 
+                  background: currentPlayingId === song.id ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                  borderBottom: '1px solid var(--border-light)',
+                  gap: '16px',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = currentPlayingId === song.id ? 'rgba(59, 130, 246, 0.08)' : 'var(--bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = currentPlayingId === song.id ? 'rgba(59, 130, 246, 0.05)' : 'transparent'}
+                onClick={(e) => {
+                  // ゴミ箱ボタンクリック時は再生トグルしない
+                  if (!e.target.closest('button.delete-btn')) {
+                    togglePlay(song);
+                  }
+                }}
+              >
                 <button 
                   className={`btn ${currentPlayingId === song.id ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ width: '48px', height: '48px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0 }}
-                  onClick={() => togglePlay(song)}
+                  style={{ width: '44px', height: '44px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0, boxShadow: currentPlayingId === song.id ? '0 4px 12px rgba(59,130,246,0.3)' : 'none' }}
                 >
                   {currentPlayingId === song.id ? 
-                    <PauseIcon style={{ width: '24px', height: '24px' }} /> : 
-                    <PlayIcon style={{ width: '24px', height: '24px', marginLeft: '4px' }} />
+                    <PauseIcon style={{ width: '20px', height: '20px' }} /> : 
+                    <PlayIcon style={{ width: '20px', height: '20px', marginLeft: '4px' }} />
                   }
                 </button>
                 
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ fontSize: '1.1rem', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {song.title}
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      {new Date(song.created_at).toLocaleDateString()}
-                    </span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>•</span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                  
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ fontSize: '1.05rem', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: currentPlayingId === song.id ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                      {song.title}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                        {new Date(song.created_at).toLocaleDateString()}
+                      </span>
+                      
+                      {song.tags && song.tags.length > 0 && (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {song.tags.map((tag, i) => (
+                            <span key={i} style={{ 
+                              fontSize: '0.7rem', 
+                              padding: '2px 8px', 
+                              background: 'var(--bg-primary)', 
+                              border: '1px solid var(--border-default)',
+                              borderRadius: '12px',
+                              color: 'var(--text-secondary)'
+                            }}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 波形風の装飾（再生中のみ青く光る） */}
+                  {currentPlayingId === song.id && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '24px', marginRight: '16px' }}>
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} style={{
+                          width: '4px',
+                          background: 'var(--accent-blue)',
+                          borderRadius: '2px',
+                          animation: `bounce ${0.5 + Math.random() * 0.5}s infinite alternate`
+                        }} />
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                       {formatDuration(song.duration)}
                     </span>
                     
-                    {song.tags && song.tags.length > 0 && (
-                      <>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>•</span>
-                        {song.tags.map((tag, i) => (
-                          <span key={i} style={{ 
-                            fontSize: '0.75rem', 
-                            padding: '2px 8px', 
-                            background: 'rgba(255,255,255,0.1)', 
-                            borderRadius: '12px',
-                            color: 'var(--text-primary)'
-                          }}>
-                            {tag}
-                          </span>
-                        ))}
-                      </>
-                    )}
+                    <button 
+                      className="btn btn-secondary delete-btn" 
+                      style={{ padding: '8px', color: 'var(--accent-orange)', background: 'transparent', border: 'none' }}
+                      onClick={() => handleDelete(song)}
+                      title="削除"
+                    >
+                      <TrashIcon style={{ width: '20px', height: '20px' }} />
+                    </button>
                   </div>
                 </div>
 
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ padding: '8px', color: 'var(--accent-orange)' }}
-                  onClick={() => handleDelete(song)}
-                  title="削除"
-                >
-                  <TrashIcon style={{ width: '20px', height: '20px' }} />
-                </button>
               </div>
             ))}
           </div>
