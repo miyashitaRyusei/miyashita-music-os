@@ -238,7 +238,7 @@ export function calculateMetrics({
     .slice(0, 5);
 
   // ========== メロディ×コード ヒートマップ計算 ==========
-  const degreeOrder = ['R', 'm2', 'M2', 'm3', 'M3', 'P4', '#4/b5', 'P5', 'm6', 'M6', 'm7', 'M7', '9', '11', '13'];
+  const degreeOrder = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
   // 基本的なコード種別にまとめるためのマッピング関数
   const getChordType = (chordName) => {
     if (!chordName) return 'Other';
