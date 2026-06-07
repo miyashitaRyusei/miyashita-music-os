@@ -44,7 +44,25 @@ export default function MelodyChordAnalyzer() {
     validFilteredItems.forEach(r => {
       if (r.chord_name || r.chordName) chords.add(r.chord_name || r.chordName);
     });
-    return Array.from(chords).sort();
+    
+    // Cから始まるルート音順にソートするためのヘルパー
+    const rootOrder = {
+      'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5,
+      'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+    };
+    
+    return Array.from(chords).sort((a, b) => {
+      const matchA = a.match(/^[A-G][#b]?/);
+      const matchB = b.match(/^[A-G][#b]?/);
+      const scoreA = matchA && rootOrder[matchA[0]] !== undefined ? rootOrder[matchA[0]] : 99;
+      const scoreB = matchB && rootOrder[matchB[0]] !== undefined ? rootOrder[matchB[0]] : 99;
+      
+      if (scoreA !== scoreB) {
+        return scoreA - scoreB;
+      }
+      // ルート音が同じ場合は辞書順（例: C -> C7 -> Cmaj7 -> Cm）
+      return a.localeCompare(b);
+    });
   }, [validFilteredItems]);
 
   const chordStats = useMemo(() => {

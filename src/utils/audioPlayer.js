@@ -17,8 +17,19 @@ async function initTone() {
     synth.volume.value = -8; // 伴奏コード用
   }
   if (!melodySynth) {
-    melodySynth = new Tone.PolySynth(Tone.FMSynth).toDestination();
-    melodySynth.volume.value = -2; // メロディ用（少し目立たせる）
+    // メロディ用は耳に優しいサイン波や三角波をベースにする
+    melodySynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: {
+        type: "triangle"
+      },
+      envelope: {
+        attack: 0.05,
+        decay: 0.2,
+        sustain: 0.2,
+        release: 1.5
+      }
+    }).toDestination();
+    melodySynth.volume.value = -8; // メロディが大きすぎないように調整
   }
 }
 
