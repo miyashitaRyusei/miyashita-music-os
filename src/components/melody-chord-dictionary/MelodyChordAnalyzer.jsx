@@ -12,9 +12,17 @@ export default function MelodyChordAnalyzer() {
   const [selectedDegree, setSelectedDegree] = useState('ド');
   const [selectedChord, setSelectedChord] = useState('C');
 
+  // 無効なデータ（度数表記になってしまっているバグデータ等）を除外する
+  const validFilteredItems = useMemo(() => {
+    return filteredItems.filter(r => {
+      const degree = r.melody_degree || r.melodyDegree;
+      return ALL_DEGREES.includes(degree);
+    });
+  }, [filteredItems]);
+
   // --- メロディから探す ---
   const degreeStats = useMemo(() => {
-    const filtered = filteredItems.filter(r => r.melody_degree === selectedDegree || r.melodyDegree === selectedDegree);
+    const filtered = validFilteredItems.filter(r => r.melody_degree === selectedDegree || r.melodyDegree === selectedDegree);
     const total = filtered.reduce((sum, r) => sum + (r.count || 1), 0);
     
     const groups = {};
@@ -28,20 +36,19 @@ export default function MelodyChordAnalyzer() {
       .sort((a, b) => b.count - a.count);
 
     return { total, sorted };
-  }, [filteredItems, selectedDegree]);
+  }, [validFilteredItems, selectedDegree]);
 
   // --- コードから探す ---
-  // 存在するすべてのコードを抽出して選択肢にする
   const availableChords = useMemo(() => {
     const chords = new Set();
-    filteredItems.forEach(r => {
+    validFilteredItems.forEach(r => {
       if (r.chord_name || r.chordName) chords.add(r.chord_name || r.chordName);
     });
     return Array.from(chords).sort();
-  }, [filteredItems]);
+  }, [validFilteredItems]);
 
   const chordStats = useMemo(() => {
-    const filtered = filteredItems.filter(r => (r.chord_name === selectedChord) || (r.chordName === selectedChord));
+    const filtered = validFilteredItems.filter(r => (r.chord_name === selectedChord) || (r.chordName === selectedChord));
     const total = filtered.reduce((sum, r) => sum + (r.count || 1), 0);
     
     const groups = {};
@@ -55,13 +62,24 @@ export default function MelodyChordAnalyzer() {
       .sort((a, b) => b.count - a.count);
 
     return { total, sorted };
-  }, [filteredItems, selectedChord]);
+  }, [validFilteredItems, selectedChord]);
 
   // 初回ロード時などに有効なコードをセットする
   if (availableChords.length > 0 && !availableChords.includes(selectedChord)) {
     setSelectedChord(availableChords[0]);
   }
 
+  // --- 再生機能 ---
+  const handlePlayChord = async (chordName) => {
+    const { playChordProgression } = await import('../../utils/audioPlayer');
+    playChordProgression([chordName]);
+  };
+
+  const handlePlayNote = async (noteName) => {
+    const { playPitchSequence } = await import('../../utils/audioPlayer');
+    // ピッチ辞書の再生関数を使う
+    playPitchSequence([noteName]);
+  };
 
   return (
     <div>
@@ -69,32 +87,50 @@ export default function MelodyChordAnalyzer() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
       
       {/* メロディから探す */}
-      <div className="workspace-section">
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--text-primary)' }}>
+      <div className="dict-card" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           🎵 メロディ音からコードを探す
         </h3>
-        <div className="form-group" style={{ marginBottom: '24px' }}>
-          <label className="form-label">メロディ音（Cメジャー基準）</label>
-          <select 
-            className="input" 
-            value={selectedDegree} 
-            onChange={(e) => setSelectedDegree(e.target.value)}
-          >
-            {ALL_DEGREES.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+        
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>メロディ音（Cメジャー基準）</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
+            {ALL_DEGREES.map(d => (
+              <button 
+                key={d} 
+                onClick={() => setSelectedDegree(d)}
+                style={{
+                  padding: '8px 4px',
+                  borderRadius: '6px',
+                  border: selectedDegree === d ? '2px solid var(--accent-blue)' : '1px solid var(--border-strong)',
+                  background: selectedDegree === d ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-secondary)',
+                  color: selectedDegree === d ? 'var(--accent-blue)' : 'var(--text-primary)',
+                  fontWeight: selectedDegree === d ? 'bold' : 'normal',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontSize: '0.9rem'
+                }}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div style={{ minHeight: '300px', padding: '0 8px' }}>
-          <div style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            総サンプル数: <strong>{degreeStats.total}</strong> 件
+        <div style={{ minHeight: '300px' }}>
+          <div style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+            <span>分析結果</span>
+            <span>総サンプル数: <strong>{degreeStats.total}</strong> 件</span>
           </div>
           {degreeStats.sorted.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {degreeStats.sorted.map((item) => {
-                // コードのルート音がスケール外かどうか（雑な判定ですが#やbを含むか）
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {degreeStats.sorted.map((item, index) => {
                 const isNonDiatonicChord = item.chord.includes('#') || item.chord.includes('b');
                 return (
                   <div key={item.chord} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '24px', fontSize: '0.9rem', color: 'var(--text-tertiary)', textAlign: 'right' }}>
+                      {index + 1}.
+                    </div>
                     <div style={{ 
                       width: '60px', 
                       fontWeight: 'bold', 
@@ -102,20 +138,31 @@ export default function MelodyChordAnalyzer() {
                     }}>
                       {item.chord}
                     </div>
-                    <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{ 
-                      width: `${item.percentage}%`, 
-                      height: '100%', 
-                      background: 'var(--accent-blue)', 
-                      transition: 'width 0.3s ease' 
-                    }} />
+                    <button 
+                      onClick={() => handlePlayChord(item.chord)}
+                      style={{ 
+                        background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent-blue)',
+                        padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                      title={`${item.chord}を再生`}
+                    >
+                      ▶
+                    </button>
+                    <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '16px', borderRadius: '8px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)' }}>
+                      <div style={{ 
+                        width: `${item.percentage}%`, 
+                        height: '100%', 
+                        background: 'linear-gradient(90deg, var(--accent-blue), #60a5fa)', 
+                        transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        borderRadius: '8px'
+                      }} />
+                    </div>
+                    <div style={{ width: '48px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                      {Math.round(item.percentage)}%
+                    </div>
                   </div>
-                  <div style={{ width: '40px', textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {Math.round(item.percentage)}%
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
             </div>
           ) : (
             <div className="empty-state">データがありません</div>
@@ -124,36 +171,62 @@ export default function MelodyChordAnalyzer() {
       </div>
 
       {/* コードから探す */}
-      <div className="workspace-section" style={{ marginTop: 0 }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--text-primary)' }}>
+      <div className="dict-card" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           🎹 コードからメロディ音を探す
         </h3>
-        <div className="form-group" style={{ marginBottom: '24px' }}>
-          <label className="form-label">コード（Cメジャー基準）</label>
-          <select 
-            className="input" 
-            value={selectedChord} 
-            onChange={(e) => setSelectedChord(e.target.value)}
-            disabled={availableChords.length === 0}
-          >
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>コード（Cメジャー基準）</div>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
+            gap: '8px',
+            maxHeight: '120px',
+            overflowY: 'auto',
+            paddingRight: '4px'
+          }}>
             {availableChords.length > 0 ? (
-              availableChords.map(c => <option key={c} value={c}>{c}</option>)
+              availableChords.map(c => (
+                <button 
+                  key={c} 
+                  onClick={() => setSelectedChord(c)}
+                  style={{
+                    padding: '8px 4px',
+                    borderRadius: '6px',
+                    border: selectedChord === c ? '2px solid var(--accent-purple)' : '1px solid var(--border-strong)',
+                    background: selectedChord === c ? 'rgba(168, 85, 247, 0.1)' : 'var(--bg-secondary)',
+                    color: selectedChord === c ? 'var(--accent-purple)' : 'var(--text-primary)',
+                    fontWeight: selectedChord === c ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  {c}
+                </button>
+              ))
             ) : (
-              <option value="C">C</option>
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
+                有効なコードがありません
+              </div>
             )}
-          </select>
+          </div>
         </div>
 
-        <div style={{ minHeight: '300px', padding: '0 8px' }}>
-          <div style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            総サンプル数: <strong>{chordStats.total}</strong> 件
+        <div style={{ minHeight: '300px' }}>
+          <div style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+            <span>分析結果</span>
+            <span>総サンプル数: <strong>{chordStats.total}</strong> 件</span>
           </div>
           {chordStats.sorted.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chordStats.sorted.map((item) => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {chordStats.sorted.map((item, index) => {
                 const isNonDiatonic = item.degree.includes('#');
                 return (
                   <div key={item.degree} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '24px', fontSize: '0.9rem', color: 'var(--text-tertiary)', textAlign: 'right' }}>
+                      {index + 1}.
+                    </div>
                     <div style={{ 
                       width: '60px', 
                       fontWeight: 'bold', 
@@ -161,20 +234,31 @@ export default function MelodyChordAnalyzer() {
                     }}>
                       {item.degree}
                     </div>
-                    <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
+                    <button 
+                      onClick={() => handlePlayNote(item.degree)}
+                      style={{ 
+                        background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent-purple)',
+                        padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                      title={`${item.degree}を再生`}
+                    >
+                      ▶
+                    </button>
+                    <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '16px', borderRadius: '8px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)' }}>
                       <div style={{ 
                         width: `${item.percentage}%`, 
-                      height: '100%', 
-                      background: 'var(--accent-purple)', 
-                      transition: 'width 0.3s ease' 
-                    }} />
+                        height: '100%', 
+                        background: 'linear-gradient(90deg, var(--accent-purple), #d8b4fe)', 
+                        transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        borderRadius: '8px'
+                      }} />
+                    </div>
+                    <div style={{ width: '48px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                      {Math.round(item.percentage)}%
+                    </div>
                   </div>
-                  <div style={{ width: '40px', textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {Math.round(item.percentage)}%
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
             </div>
           ) : (
             <div className="empty-state">データがありません</div>
