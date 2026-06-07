@@ -11,9 +11,9 @@ const navItems = [
   { path: '/my-library', label: 'マイライブラリ', icon: '🎧' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar__logo">
         <span className="sidebar__logo-icon">◉</span>
         <span className="sidebar__logo-text">みやした音楽OS</span>
@@ -27,6 +27,7 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             end={item.path === '/'}
+            onClick={() => setIsOpen(false)}
             className={({ isActive }) =>
               `sidebar__nav-item${isActive ? ' sidebar__nav-item--active' : ''}`
             }
