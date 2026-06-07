@@ -1,4 +1,4 @@
-
+import { MusicalNoteIcon, Bars3BottomLeftIcon, PlayIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
 const ALL_PITCHES = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
 
@@ -21,7 +21,10 @@ export default function PitchAdvancedFilter({ advancedFilters, setAdvancedFilter
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div className="form-group">
-        <label className="form-label">🎹 含まれる音（複数選択可/AND）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <MusicalNoteIcon style={{ width: '16px', height: '16px' }} />
+          含まれる音（複数選択可/AND）
+        </label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {ALL_PITCHES.map(p => {
             const isSelected = (advancedFilters.includedPitches || []).includes(p);
@@ -47,7 +50,10 @@ export default function PitchAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">🎼 音数（フレーズの長さ）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Bars3BottomLeftIcon style={{ width: '16px', height: '16px' }} />
+          音数（フレーズの長さ）
+        </label>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="number"
@@ -71,7 +77,10 @@ export default function PitchAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">🏁 開始音</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <PlayIcon style={{ width: '16px', height: '16px' }} />
+          開始音
+        </label>
         <select
           className="input"
           value={advancedFilters.startNote || ''}
@@ -83,7 +92,10 @@ export default function PitchAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">🎯 終了音（着地）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <MapPinIcon style={{ width: '16px', height: '16px' }} />
+          終了音（着地）
+        </label>
         <select
           className="input"
           value={advancedFilters.endNote || ''}

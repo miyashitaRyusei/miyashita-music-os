@@ -318,9 +318,10 @@ function parseChordToNotes(chordString, initialOctave, Chord, Note) {
   let prevChroma = -1;
   let chordNotes = [];
 
+  let fallbackMatch = null;
   if (chordData.empty) {
     // パースできない場合、最初のルート音（A-G）だけ抽出してみる
-    const fallbackMatch = chordName.match(/^[A-G][#b]?/i);
+    fallbackMatch = chordName.match(/^[A-G][#b]?/i);
     if (fallbackMatch) {
       chordNotes = [fallbackMatch[0] + initialOctave];
     }

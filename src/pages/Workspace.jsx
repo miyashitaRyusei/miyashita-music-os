@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Square3Stack3DIcon } from '@heroicons/react/24/outline';
 import useAppStore from '../store/useAppStore';
 import ChordInputArea from '../components/workspace/ChordInputArea';
 import PianoRollCanvas from '../components/workspace/PianoRollCanvas';
@@ -37,7 +38,7 @@ export default function Workspace() {
 
   const handleStockPitchAndRhythm = () => {
     if (extractedPitch.length === 0 || extractedRhythm.length === 0) {
-      showToast('⚠️ ピアノロールでノートを選択してください');
+      showToast('ピアノロールでノートを選択してください');
       return;
     }
     
@@ -92,17 +93,17 @@ export default function Workspace() {
       section: stockAttributes.section,
       songId: activeSongId,
     });
-    showToast('✅ ピッチ＆リズム辞書にストックしました');
+    showToast('ピッチ＆リズム辞書にストックしました');
   };
 
   const handleStockChord = () => {
     if (parsedChords.length === 0) {
-      showToast('⚠️ コードを入力してください');
+      showToast('コードを入力してください');
       return;
     }
 
     if (!selectedChordIndices || selectedChordIndices.length === 0) {
-      showToast('⚠️ コードトラック上のバッジをクリックして、ストックしたいコードを選択してください');
+      showToast('コードトラック上のバッジをクリックして、ストックしたいコードを選択してください');
       return;
     }
 
@@ -125,7 +126,7 @@ export default function Workspace() {
     });
 
     if (selectedChords.length === 0) {
-      showToast('⚠️ 選択されたコードが見つかりません');
+      showToast('選択されたコードが見つかりません');
       return;
     }
     
@@ -154,16 +155,16 @@ export default function Workspace() {
     });
     
     clearChordSelection();
-    showToast('✅ コード辞書にストックしました（Cメジャーに移調済）');
+    showToast('コード辞書にストックしました（Cメジャーに移調済）');
   };
 
   const handleStockMelodyChordRelations = async () => {
     if (parsedChords.length === 0) {
-      showToast('⚠️ コードを入力してください');
+      showToast('コードを入力してください');
       return;
     }
     if (!midiData || !midiData.notes || midiData.notes.length === 0) {
-      showToast('⚠️ ピアノロールにMIDIを読み込んでください');
+      showToast('ピアノロールにMIDIを読み込んでください');
       return;
     }
 
@@ -225,16 +226,19 @@ export default function Workspace() {
     }
 
     if (relationCount > 0) {
-      showToast(`✅ タイムライン全体から ${relationCount} 件のメロディ×コード関係を抽出しました`);
+      showToast(`タイムライン全体から ${relationCount} 件のメロディ×コード関係を抽出しました`);
     } else {
-      showToast('⚠️ コードの切り替わりタイミングで鳴っているメロディが見つかりませんでした');
+      showToast('コードの切り替わりタイミングで鳴っているメロディが見つかりませんでした');
     }
   };
 
   return (
     <div className="page-full animate-fade-in">
       <div className="page__header">
-        <h1 className="page__title">作業場エディタ</h1>
+        <h1 className="page__title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Square3Stack3DIcon style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+          作業場エディタ
+        </h1>
         <p className="page__subtitle">MIDIの読み込み・フレーズの切り出し・コードの手入力</p>
       </div>
 

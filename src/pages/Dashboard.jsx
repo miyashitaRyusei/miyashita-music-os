@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell
 } from 'recharts';
+import { HomeIcon, SparklesIcon, CheckCircleIcon, ChevronDownIcon, ChevronRightIcon, LightBulbIcon } from '@heroicons/react/24/outline';
 import useAppStore from '../store/useAppStore';
 import { generateAIPrompt } from '../utils/exportPrompt';
 import { calculateMetrics } from '../utils/metricsCalculator';
@@ -300,7 +301,10 @@ function MelodyChordHeatmapPanel({ heatmapData, degreeOrder, totalRelations }) {
   );
 }
 
-function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }) {
+function MetricsReferencePanel({ 
+  pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, 
+  radarChartData, sectionData, topChords, nonDiatonicRate, topKeys 
+}) {
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -309,6 +313,12 @@ function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }
       radarData: radarChartData,
       pitchPatterns,
       rhythmPatterns,
+      chordProgressions,
+      melodyChordRelations,
+      sectionData,
+      topChords,
+      nonDiatonicRate,
+      topKeys
     });
     
     navigator.clipboard.writeText(promptText).then(() => {
@@ -342,7 +352,10 @@ function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }
         onClick={() => setIsOpen(!isOpen)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="card__title" style={{ userSelect: 'none' }}>指標リファレンス ＆ エクスポート {isOpen ? '▼' : '▶'}</span>
+          <span className="card__title" style={{ userSelect: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            指標リファレンス ＆ エクスポート 
+            {isOpen ? <ChevronDownIcon style={{ width: '16px', height: '16px' }} /> : <ChevronRightIcon style={{ width: '16px', height: '16px' }} />}
+          </span>
           <span className="badge badge--blue">LLM連携</span>
         </div>
         <button 
@@ -352,17 +365,27 @@ function MetricsReferencePanel({ pitchPatterns, rhythmPatterns, radarChartData }
             background: copied ? 'var(--accent-blue)' : 'var(--bg-primary)',
             color: copied ? '#fff' : 'var(--text-primary)',
             border: '1px solid var(--border-default)',
-            transition: 'all var(--transition-fast)'
+            transition: 'all var(--transition-fast)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          {copied ? '✅ コピー完了！' : '🤖 AIプロンプトをコピー'}
+          {copied ? (
+            <><CheckCircleIcon style={{ width: '16px', height: '16px' }} /> コピー完了！</>
+          ) : (
+            <><SparklesIcon style={{ width: '16px', height: '16px' }} /> AIプロンプトをコピー</>
+          )}
         </button>
       </div>
       {isOpen && (
         <div className="metrics-ref-list" style={{ marginTop: '16px' }}>
           {metrics.map((m) => (
             <div key={m.name} className="metrics-ref-item">
-              <span className="metrics-ref-term">{m.name}</span>
+              <span className="metrics-ref-term" style={{ display: 'flex', alignItems: 'center' }}>
+                <LightBulbIcon style={{ width: '16px', height: '16px', color: 'var(--accent-blue)', marginRight: '6px', flexShrink: 0 }} />
+                {m.name}
+              </span>
               <span className="metrics-ref-desc">{m.desc}</span>
             </div>
           ))}
@@ -393,7 +416,10 @@ export default function Dashboard() {
   return (
     <div className="page animate-fade-in">
       <div className="page__header">
-        <h1 className="page__title">ダッシュボード</h1>
+        <h1 className="page__title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <HomeIcon style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+          ダッシュボード
+        </h1>
         <p className="page__subtitle">ストックデータの統計比較とAIからの作曲処方箋</p>
       </div>
 
@@ -418,7 +444,13 @@ export default function Dashboard() {
         <MetricsReferencePanel 
           pitchPatterns={pitchPatterns} 
           rhythmPatterns={rhythmPatterns} 
+          chordProgressions={chordProgressions}
+          melodyChordRelations={melodyChordRelations}
           radarChartData={radarChartData}
+          sectionData={sectionData}
+          topChords={topChords}
+          nonDiatonicRate={nonDiatonicRate}
+          topKeys={topKeys}
         />
       </div>
     </div>

@@ -13,10 +13,24 @@
   --bg-tertiary: #f0efec;
   --bg-hover: #ebebea;
   --bg-active: #e3e2e0;
-  --bg-sidebar: #f7f6f3;
+  --bg-sidebar: #fffdf5; /* Subtle yellow tint for music app feel */
   --bg-card: #ffffff;
 
-  /* Text Colors */
+  /* --- Typography Variables --- */
+  --font-inter: 'Inter', sans-serif;
+  --font-noto: 'Noto Sans JP', sans-serif;
+  --font-klee: 'Klee One', cursive;
+  --font-zen: 'Zen Kaku Gothic New', sans-serif;
+  --font-maru: 'Zen Maru Gothic', sans-serif;
+
+  /* 現在のテーマ: 全てZen角ゴシック */
+  --font-primary: var(--font-zen);
+  --font-heading: var(--font-zen);
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+:root {
+  /* Basic Colors */
   --text-primary: #37352f;
   --text-secondary: #787774;
   --text-tertiary: #b4b4b0;
@@ -26,9 +40,9 @@
   --border-default: #e9e9e7;
   --border-strong: #d3d3d0;
 
-  /* Accent Colors (subtle, Notion-like) */
-  --accent-blue: #2383e2;
-  --accent-blue-light: #e8f0fe;
+  /* Accent Colors (Main theme is now Yellow, keeping -blue name for compatibility) */
+  --accent-blue: #eab308; /* Tailwind Yellow 500 */
+  --accent-blue-light: #fef9c3; /* Tailwind Yellow 100 */
   --accent-green: #0f7b6c;
   --accent-green-light: #e6f5f0;
   --accent-red: #eb5757;
@@ -81,6 +95,8 @@
   --font-size-xl: 20px;
   --font-size-2xl: 24px;
   --font-size-3xl: 30px;
+  --line-height-relaxed: 1.6;
+  --line-height-tight: 1.2;
 
   /* Layout */
   --sidebar-width: 240px;
@@ -109,12 +125,24 @@ html {
 }
 
 body {
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
   background-color: var(--bg-primary);
-  line-height: 1.5;
-  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .card__title, .sidebar__logo-text {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
 }
 
 #root {
@@ -258,8 +286,14 @@ ul, ol {
 }
 
 .sidebar__nav-item--active {
-  background: var(--bg-active);
-  color: var(--text-primary);
+  background: var(--accent-blue-light);
+  color: #854d0e; /* Yellow 800 for contrast */
+  font-weight: 600;
+}
+
+.sidebar__nav-item--active .sidebar__nav-icon {
+  color: var(--accent-blue);
+  opacity: 1;
 }
 
 .sidebar__nav-icon {
@@ -845,17 +879,12 @@ ul, ol {
   display: flex;
   align-items: center;
 }
-.metrics-ref-term::before {
-  content: '💡';
-  margin-right: 6px;
-  font-size: 14px;
-}
 
 .metrics-ref-desc {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
   line-height: 1.5;
-  padding-left: 24px; /* アイコン分のインデント */
+  padding-left: 22px; /* アイコン分のインデント */
 }
 
 /* ============================================

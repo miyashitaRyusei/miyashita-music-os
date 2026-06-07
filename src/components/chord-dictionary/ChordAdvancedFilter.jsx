@@ -1,4 +1,4 @@
-
+import { MusicalNoteIcon, LinkIcon, PlayIcon, MapPinIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 export default function ChordAdvancedFilter({ advancedFilters, setAdvancedFilters }) {
   const handleChange = (key, value) => {
@@ -9,7 +9,10 @@ export default function ChordAdvancedFilter({ advancedFilters, setAdvancedFilter
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       <div className="form-group">
-        <label className="form-label">🎹 特定コードの含有</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <MusicalNoteIcon style={{ width: '16px', height: '16px' }} />
+          特定コードの含有
+        </label>
         <input
           type="text"
           className="input"
@@ -23,7 +26,10 @@ export default function ChordAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">🔗 進行の長さ（コード数）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <LinkIcon style={{ width: '16px', height: '16px' }} />
+          進行の長さ（コード数）
+        </label>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="number"
@@ -47,7 +53,10 @@ export default function ChordAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">🏁 開始コード</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <PlayIcon style={{ width: '16px', height: '16px' }} />
+          開始コード
+        </label>
         <input
           type="text"
           className="input"
@@ -58,7 +67,10 @@ export default function ChordAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">🎯 終了コード</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <MapPinIcon style={{ width: '16px', height: '16px' }} />
+          終了コード
+        </label>
         <input
           type="text"
           className="input"
@@ -69,7 +81,10 @@ export default function ChordAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
-        <label className="form-label">👽 ノンダイアトニックコード（エモさ）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <SparklesIcon style={{ width: '16px', height: '16px' }} />
+          ノンダイアトニックコード（エモさ）
+        </label>
         <select
           className="input"
           value={advancedFilters.hasNonDiatonic || ''}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MusicalNoteIcon, TrashIcon } from '@heroicons/react/24/outline';
 import useAppStore from '../store/useAppStore';
 
 export default function SongRegistry() {
@@ -38,7 +39,10 @@ export default function SongRegistry() {
   return (
     <div className="page animate-fade-in">
       <div className="page__header">
-        <h1 className="page__title">登録楽曲リスト</h1>
+        <h1 className="page__title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <MusicalNoteIcon style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+          登録楽曲リスト
+        </h1>
         <p className="page__subtitle">これまでにインポートした楽曲と、そこから抽出したパターンの集計</p>
       </div>
 
@@ -68,7 +72,9 @@ export default function SongRegistry() {
       <div className="song-registry-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
         {filteredSongs.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-state__icon">💿</span>
+            <span className="empty-state__icon">
+              <MusicalNoteIcon style={{ width: '48px', height: '48px', color: 'var(--text-tertiary)' }} />
+            </span>
             <span className="empty-state__text">条件に一致する楽曲がありません</span>
           </div>
         ) : (
@@ -159,10 +165,10 @@ export default function SongRegistry() {
                       }
                     }}
                     className="btn btn--sm btn--ghost"
-                    style={{ color: '#ef4444', padding: '6px', minWidth: 'auto' }}
+                    style={{ color: '#ef4444', padding: '6px', minWidth: 'auto', background: 'transparent', border: 'none', cursor: 'pointer' }}
                     title="この曲と抽出データを削除"
                   >
-                    <span style={{ fontSize: '1.2rem' }}>🗑️</span>
+                    <TrashIcon style={{ width: '20px', height: '20px' }} />
                   </button>
                 </div>
 

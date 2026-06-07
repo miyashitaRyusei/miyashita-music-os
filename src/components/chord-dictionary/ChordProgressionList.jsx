@@ -4,6 +4,7 @@ import { playChordProgression, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
 import ChordAdvancedFilter from './ChordAdvancedFilter';
+import { TrashIcon, PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/outline';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
   const toggleChordFavorite = useAppStore((s) => s.toggleChordFavorite);
@@ -68,9 +69,9 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
   return (
     <div className={`dict-card ${isPlaying ? 'dict-card--playing' : ''}`} onClick={onTogglePlay}>
       <div className="dict-card__header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-          <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '' }}>
-            {isPlaying ? '■' : '▶'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+          <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer' }}>
+            {isPlaying ? <StopCircleIcon style={{ width: '20px', height: '20px', color: 'white' }} /> : <PlayCircleIcon style={{ width: '20px', height: '20px' }} />}
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
             <span className="dict-card__id" style={{ 
@@ -102,16 +103,17 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
             {progression.is_favorite ? '★' : '☆'}
           </button>
           <button 
+            className="btn btn--sm btn--ghost" 
+            style={{ color: '#ef4444', padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={(e) => {
               e.stopPropagation();
               if (window.confirm('このコード進行を削除しますか？')) {
                 useAppStore.getState().removeChordProgression(progression.id);
               }
             }}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
             title="削除"
           >
-            🗑️
+            <TrashIcon style={{ width: '18px', height: '18px' }} />
           </button>
         </div>
       </div>

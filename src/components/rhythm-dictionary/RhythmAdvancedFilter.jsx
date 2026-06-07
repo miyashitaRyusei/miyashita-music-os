@@ -1,4 +1,4 @@
-
+import { Bars3BottomLeftIcon, PauseIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 export default function RhythmAdvancedFilter({ advancedFilters, setAdvancedFilters }) {
   const handleChange = (key, value) => {
@@ -9,7 +9,10 @@ export default function RhythmAdvancedFilter({ advancedFilters, setAdvancedFilte
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       <div className="form-group">
-        <label className="form-label">🥁 音数（手数の多さ）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Bars3BottomLeftIcon style={{ width: '16px', height: '16px' }} />
+          音数（手数の多さ）
+        </label>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="number"
@@ -33,7 +36,10 @@ export default function RhythmAdvancedFilter({ advancedFilters, setAdvancedFilte
       </div>
 
       <div className="form-group">
-        <label className="form-label">⏸️ 休符の有無</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <PauseIcon style={{ width: '16px', height: '16px' }} />
+          休符の有無
+        </label>
         <select
           className="input"
           value={advancedFilters.hasRests || ''}
@@ -46,7 +52,10 @@ export default function RhythmAdvancedFilter({ advancedFilters, setAdvancedFilte
       </div>
 
       <div className="form-group">
-        <label className="form-label">🏃 アウフタクト（弱起始まり）</label>
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowRightIcon style={{ width: '16px', height: '16px' }} />
+          アウフタクト（弱起始まり）
+        </label>
         <select
           className="input"
           value={advancedFilters.isAnacrusis || ''}

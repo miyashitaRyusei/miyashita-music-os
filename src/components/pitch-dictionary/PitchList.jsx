@@ -4,6 +4,7 @@ import { playPitchSequence, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
 import PitchAdvancedFilter from './PitchAdvancedFilter';
+import { TrashIcon, PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/outline';
 
 // 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
 function degreeToValue(degreeStr) {
@@ -93,8 +94,8 @@ function PitchPatternItem({ pattern }) {
     <div className={`dict-card ${isPlaying ? 'dict-card--playing' : ''}`} onClick={handlePlay}>
       <div className="dict-card__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '' }}>
-            {isPlaying ? '■' : '▶'}
+          <span className="dict-card__play-btn" style={{ background: isPlaying ? 'var(--accent-orange)' : '', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer' }}>
+            {isPlaying ? <StopCircleIcon style={{ width: '20px', height: '20px', color: 'white' }} /> : <PlayCircleIcon style={{ width: '20px', height: '20px' }} />}
           </span>
           <span className="dict-card__id" style={{ 
             whiteSpace: 'nowrap', 
@@ -122,16 +123,17 @@ function PitchPatternItem({ pattern }) {
             {pattern.is_favorite ? '★' : '☆'}
           </button>
           <button 
+            className="btn btn--sm btn--ghost" 
+            style={{ color: '#ef4444', padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={(e) => {
               e.stopPropagation();
               if (window.confirm('このピッチパターンを削除しますか？')) {
                 useAppStore.getState().removePitchPattern(pattern.id);
               }
             }}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px', fontSize: '0.9rem' }}
             title="削除"
           >
-            🗑️
+            <TrashIcon style={{ width: '18px', height: '18px' }} />
           </button>
         </div>
       </div>

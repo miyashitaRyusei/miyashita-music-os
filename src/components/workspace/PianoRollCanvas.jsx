@@ -1,6 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react';
-import { useState } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import useAppStore from '../../store/useAppStore';
+import { PlayIcon, StopIcon } from '@heroicons/react/24/outline';
 import MidiMetadataModal from './MidiMetadataModal';
 
 import { usePianoRollDraw, PIXELS_PER_SECOND, LEFT_MARGIN, TOP_MARGIN, BOTTOM_MARGIN } from '../../hooks/usePianoRollDraw';
@@ -293,10 +293,17 @@ export default function PianoRollCanvas() {
               color: isPlaying ? '#fff' : 'var(--text-primary)',
               border: '1px solid var(--border-default)',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
             onClick={(e) => { e.stopPropagation(); togglePlayback(); }}
           >
-            {isPlaying ? '■ 停止' : '▶ 再生'}
+            {isPlaying ? (
+              <><StopIcon style={{ width: '16px', height: '16px' }} /> 停止</>
+            ) : (
+              <><PlayIcon style={{ width: '16px', height: '16px' }} /> 再生</>
+            )}
           </button>
         </div>
 

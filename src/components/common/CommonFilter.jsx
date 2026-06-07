@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import Drawer from '../ui/Drawer';
+import { 
+  MagnifyingGlassIcon, 
+  ArrowsUpDownIcon, 
+  ArchiveBoxIcon, 
+  HeartIcon, 
+  TagIcon, 
+  MusicalNoteIcon,
+  AdjustmentsHorizontalIcon,
+  StarIcon as StarOutlineIcon
+} from '@heroicons/react/24/outline';
+import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
 export default function CommonFilter({ filters, setFilters, children }) {
   const registeredSongs = useAppStore((s) => s.registeredSongs);
@@ -16,7 +27,10 @@ export default function CommonFilter({ filters, setFilters, children }) {
         
         {/* 検索バー */}
         <div className="form-group" style={{ flex: '1 1 200px' }}>
-          <label className="form-label">🔍 キーワード検索</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MagnifyingGlassIcon style={{ width: '16px', height: '16px' }} />
+            キーワード検索
+          </label>
           <input
             type="text"
             className="input"
@@ -28,7 +42,10 @@ export default function CommonFilter({ filters, setFilters, children }) {
 
         {/* 並び替え */}
         <div className="form-group" style={{ flex: '0 1 150px' }}>
-          <label className="form-label">↕️ 並び替え</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ArrowsUpDownIcon style={{ width: '16px', height: '16px' }} />
+            並び替え
+          </label>
           <select 
             className="input"
             value={filters.sortBy}
@@ -46,7 +63,10 @@ export default function CommonFilter({ filters, setFilters, children }) {
         
         {/* ソース */}
         <div className="form-group" style={{ flex: '1 1 120px' }}>
-          <label className="form-label">💿 ソース</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ArchiveBoxIcon style={{ width: '16px', height: '16px' }} />
+            ソース
+          </label>
           <select 
             className="input"
             value={filters.source}
@@ -60,7 +80,10 @@ export default function CommonFilter({ filters, setFilters, children }) {
 
         {/* 評価 */}
         <div className="form-group" style={{ flex: '1 1 120px' }}>
-          <label className="form-label">❤️ 評価</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <HeartIcon style={{ width: '16px', height: '16px' }} />
+            評価
+          </label>
           <select 
             className="input"
             value={filters.preference}
@@ -74,7 +97,10 @@ export default function CommonFilter({ filters, setFilters, children }) {
 
         {/* セクション */}
         <div className="form-group" style={{ flex: '1 1 120px' }}>
-          <label className="form-label">🔖 セクション</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <TagIcon style={{ width: '16px', height: '16px' }} />
+            セクション
+          </label>
           <select 
             className="input"
             value={filters.section}
@@ -93,7 +119,10 @@ export default function CommonFilter({ filters, setFilters, children }) {
 
         {/* 楽曲 */}
         <div className="form-group" style={{ flex: '1 1 150px' }}>
-          <label className="form-label">🎵 登録楽曲</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MusicalNoteIcon style={{ width: '16px', height: '16px' }} />
+            登録楽曲
+          </label>
           <select 
             className="input"
             value={filters.songId}
@@ -116,9 +145,11 @@ export default function CommonFilter({ filters, setFilters, children }) {
           onClick={() => setFilters(f => ({ ...f, favoritesOnly: !f.favoritesOnly }))}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem' }}
         >
-          <span style={{ color: filters.favoritesOnly ? '#fff' : '#f5a623' }}>
-            {filters.favoritesOnly ? '★' : '☆'}
-          </span>
+          {filters.favoritesOnly ? (
+            <StarSolidIcon style={{ width: '16px', height: '16px', color: '#fff' }} />
+          ) : (
+            <StarOutlineIcon style={{ width: '16px', height: '16px', color: '#f5a623' }} />
+          )}
           お気に入りのみ
         </button>
 
@@ -128,7 +159,8 @@ export default function CommonFilter({ filters, setFilters, children }) {
             onClick={() => setIsDrawerOpen(true)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}
           >
-            <span>⚙️</span> 高度な絞り込み
+            <AdjustmentsHorizontalIcon style={{ width: '16px', height: '16px' }} />
+            高度な絞り込み
           </button>
         )}
       </div>

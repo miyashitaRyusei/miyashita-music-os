@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
+import { MusicalNoteIcon, CubeTransparentIcon, PlayCircleIcon } from '@heroicons/react/24/outline';
 
 const ALL_DEGREES = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
 
@@ -101,7 +102,8 @@ export default function MelodyChordAnalyzer() {
       {/* メロディから探す */}
       <div className="dict-card" style={{ padding: '24px' }}>
         <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          🎵 メロディ音からコードを探す
+          <MusicalNoteIcon style={{ width: '24px', height: '24px', color: 'var(--accent-blue)' }} />
+          メロディ音からコードを探す
         </h3>
         
         <div style={{ marginBottom: '24px' }}>
@@ -158,7 +160,7 @@ export default function MelodyChordAnalyzer() {
                       }}
                       title={`メロディ「${selectedDegree}」とコード「${item.chord}」を同時に再生`}
                     >
-                      ▶
+                      <PlayCircleIcon style={{ width: '20px', height: '20px' }} />
                     </button>
                     <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '16px', borderRadius: '8px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)' }}>
                       <div style={{ 
@@ -185,7 +187,8 @@ export default function MelodyChordAnalyzer() {
       {/* コードから探す */}
       <div className="dict-card" style={{ padding: '24px' }}>
         <h3 style={{ fontSize: '1.2rem', marginBottom: '20px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          🎹 コードからメロディ音を探す
+          <CubeTransparentIcon style={{ width: '24px', height: '24px', color: 'var(--accent-purple)' }} />
+          コードからメロディ音を探す
         </h3>
         <div style={{ marginBottom: '24px' }}>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>コード（Cメジャー基準）</div>
@@ -233,7 +236,7 @@ export default function MelodyChordAnalyzer() {
                       }}
                       title={`メロディ「${item.degree}」とコード「${selectedChord}」を同時に再生`}
                     >
-                      ▶
+                      <PlayCircleIcon style={{ width: '20px', height: '20px' }} />
                     </button>
                     <div style={{ flex: 1, background: 'var(--bg-secondary)', height: '16px', borderRadius: '8px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)' }}>
                       <div style={{ 

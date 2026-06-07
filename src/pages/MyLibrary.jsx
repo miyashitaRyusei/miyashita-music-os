@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { encodeAudioToMp3 } from '../utils/audioEncoder';
 import { uploadSongToLibrary, fetchLibrarySongs, deleteLibrarySong } from '../utils/libraryApi';
-import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, FolderIcon, MagnifyingGlassIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 
 export default function MyLibrary() {
   const [songs, setSongs] = useState([]);
@@ -215,7 +215,7 @@ export default function MyLibrary() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', padding: '0 16px' }}>
         <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <MusicalNoteIcon className="icon" style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+            <FolderIcon className="icon" style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
             マイライブラリ
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>
@@ -300,12 +300,14 @@ export default function MyLibrary() {
               <input 
                 type="text" 
                 className="select-input" 
-                placeholder="🔍 曲名で検索..."
+                placeholder="曲名で検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ padding: '12px 16px 12px 40px', width: '100%', borderRadius: '24px' }}
               />
-              <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
+              <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                <MagnifyingGlassIcon style={{ width: '18px', height: '18px', color: 'var(--text-secondary)' }} />
+              </span>
             </div>
             {allTags.length > 0 && (
               <select 
