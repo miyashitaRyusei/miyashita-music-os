@@ -180,6 +180,7 @@ export default function MyLibrary() {
     return matchSearch && matchTag;
   });
 
+  return (
     <div 
       className="container" 
       style={{ padding: '24px 0', maxWidth: '1000px', margin: '0 auto', position: 'relative', minHeight: '80vh' }}
