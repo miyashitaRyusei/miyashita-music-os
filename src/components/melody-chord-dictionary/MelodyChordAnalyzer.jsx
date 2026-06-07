@@ -70,15 +70,9 @@ export default function MelodyChordAnalyzer() {
   }
 
   // --- 再生機能 ---
-  const handlePlayChord = async (chordName) => {
-    const { playChordProgression } = await import('../../utils/audioPlayer');
-    playChordProgression([chordName]);
-  };
-
-  const handlePlayNote = async (noteName) => {
-    const { playPitchSequence } = await import('../../utils/audioPlayer');
-    // ピッチ辞書の再生関数を使う
-    playPitchSequence([noteName]);
+  const handlePlayCombo = async (melodyDegree, chordName) => {
+    const { playMelodyAndChord } = await import('../../utils/audioPlayer');
+    playMelodyAndChord(melodyDegree, chordName);
   };
 
   return (
@@ -139,12 +133,12 @@ export default function MelodyChordAnalyzer() {
                       {item.chord}
                     </div>
                     <button 
-                      onClick={() => handlePlayChord(item.chord)}
+                      onClick={() => handlePlayCombo(selectedDegree, item.chord)}
                       style={{ 
                         background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent-blue)',
                         padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}
-                      title={`${item.chord}を再生`}
+                      title={`メロディ「${selectedDegree}」とコード「${item.chord}」を同時に再生`}
                     >
                       ▶
                     </button>
@@ -177,40 +171,19 @@ export default function MelodyChordAnalyzer() {
         </h3>
         <div style={{ marginBottom: '24px' }}>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>コード（Cメジャー基準）</div>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
-            gap: '8px',
-            maxHeight: '120px',
-            overflowY: 'auto',
-            paddingRight: '4px'
-          }}>
+          <select 
+            className="input" 
+            value={selectedChord} 
+            onChange={(e) => setSelectedChord(e.target.value)}
+            disabled={availableChords.length === 0}
+            style={{ width: '100%', maxWidth: '300px' }}
+          >
             {availableChords.length > 0 ? (
-              availableChords.map(c => (
-                <button 
-                  key={c} 
-                  onClick={() => setSelectedChord(c)}
-                  style={{
-                    padding: '8px 4px',
-                    borderRadius: '6px',
-                    border: selectedChord === c ? '2px solid var(--accent-purple)' : '1px solid var(--border-strong)',
-                    background: selectedChord === c ? 'rgba(168, 85, 247, 0.1)' : 'var(--bg-secondary)',
-                    color: selectedChord === c ? 'var(--accent-purple)' : 'var(--text-primary)',
-                    fontWeight: selectedChord === c ? 'bold' : 'normal',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  {c}
-                </button>
-              ))
+              availableChords.map(c => <option key={c} value={c}>{c}</option>)
             ) : (
-              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
-                有効なコードがありません
-              </div>
+              <option value="C">C</option>
             )}
-          </div>
+          </select>
         </div>
 
         <div style={{ minHeight: '300px' }}>
@@ -235,12 +208,12 @@ export default function MelodyChordAnalyzer() {
                       {item.degree}
                     </div>
                     <button 
-                      onClick={() => handlePlayNote(item.degree)}
+                      onClick={() => handlePlayCombo(item.degree, selectedChord)}
                       style={{ 
                         background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent-purple)',
                         padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}
-                      title={`${item.degree}を再生`}
+                      title={`メロディ「${item.degree}」とコード「${selectedChord}」を同時に再生`}
                     >
                       ▶
                     </button>

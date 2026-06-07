@@ -2,6 +2,7 @@ import * as Tone from 'tone';
 
 // シングルトンとしてシンセサイザーとタイマーを保持
 let synth = null;
+let melodySynth = null;
 let currentTimeoutId = null;
 
 /**
@@ -13,7 +14,11 @@ async function initTone() {
   }
   if (!synth) {
     synth = new Tone.PolySynth(Tone.Synth).toDestination();
-    synth.volume.value = -6; // 音割れ防止のため少し下げる
+    synth.volume.value = -8; // 伴奏コード用
+  }
+  if (!melodySynth) {
+    melodySynth = new Tone.PolySynth(Tone.FMSynth).toDestination();
+    melodySynth.volume.value = -2; // メロディ用（少し目立たせる）
   }
 }
 
@@ -25,6 +30,11 @@ export function stopAudio() {
     synth.releaseAll();
     synth.dispose(); // スケジュールされたイベントをキャンセルするために破棄
     synth = null;
+  }
+  if (melodySynth) {
+    melodySynth.releaseAll();
+    melodySynth.dispose();
+    melodySynth = null;
   }
   Tone.Transport.stop();
   Tone.Transport.cancel(0);
@@ -238,6 +248,34 @@ export async function playChordProgression(chords, onEnd) {
       onEnd();
       currentTimeoutId = null;
     }, currentOffset * 1000 + 200);
+  }
+}
+
+/**
+ * メロディとコードを同時に再生する（メロディ×コード辞書用）
+ */
+export async function playMelodyAndChord(melodyDegree, chordName, onEnd) {
+  stopAudio();
+  await initTone();
+  
+  const { Chord, Note } = await import('@tonaljs/tonal');
+  const now = Tone.now();
+  
+  // メロディの再生（1オクターブ上で鳴らすと抜けが良い）
+  const melodyNote = DEGREE_TO_NOTE[melodyDegree + '↑'] || DEGREE_TO_NOTE[melodyDegree] || 'C5';
+  melodySynth.triggerAttackRelease(melodyNote, "2n", now);
+  
+  // コードの再生
+  const chordNotes = parseChordToNotes(chordName, 4, Chord, Note);
+  if (chordNotes.length > 0) {
+    synth.triggerAttackRelease(chordNotes, "2n", now);
+  }
+  
+  if (onEnd) {
+    currentTimeoutId = setTimeout(() => {
+      onEnd();
+      currentTimeoutId = null;
+    }, 1000 + 200);
   }
 }
 
