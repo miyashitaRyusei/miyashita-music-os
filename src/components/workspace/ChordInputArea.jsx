@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import useAppStore from '../../store/useAppStore';
 
 /**
@@ -10,23 +11,54 @@ export default function ChordInputArea() {
   const chordInputText = useAppStore((s) => s.chordInputText);
   const setChordInput = useAppStore((s) => s.setChordInput);
   const clearChordInput = useAppStore((s) => s.clearChordInput);
+  const textareaRef = useRef(null);
 
   const handleReflow = (chordsPerMeasure) => {
-    if (!chordInputText) return;
-    const tokens = chordInputText.split(/\s+/).filter(t => t !== '|' && t.trim() !== '');
+    if (!chordInputText || !textareaRef.current) return;
+
+    // 現在のカーソル位置・選択範囲を取得
+    const cursorStart = textareaRef.current.selectionStart;
+    const cursorEnd = textareaRef.current.selectionEnd;
+
+    // カーソル位置を境に前半・選択部分・後半に分ける
+    const textBefore = chordInputText.slice(0, cursorStart);
+    const textSelected = cursorStart === cursorEnd 
+      ? chordInputText.slice(cursorStart) 
+      : chordInputText.slice(cursorStart, cursorEnd);
+    const textAfter = cursorStart === cursorEnd 
+      ? '' 
+      : chordInputText.slice(cursorEnd);
+
+    // 選択部分からコードのトークンを抽出（| は無視）
+    const tokens = textSelected.split(/\s+/).filter(t => t !== '|' && t.trim() !== '');
     if (tokens.length === 0) return;
 
-    let newText = '';
-    let chordCount = 0;
-    
+    // 前半部分の「最後の小節」に含まれるコード数をカウントして継続する
+    const lastMeasureText = textBefore.split('|').pop() || '';
+    const lastMeasureTokens = lastMeasureText.split(/\s+/).filter(t => t.trim() !== '' && !t.startsWith('[') && t !== '<');
+    const initialChordCount = lastMeasureTokens.length;
+
+    let newTextSelected = '';
+    let chordCount = initialChordCount;
+    // 前のテキストが | で終わっている、または空なら小節は閉まっている。そうでないなら開いている。
+    let isMeasureOpen = !textBefore.trim().endsWith('|') && textBefore.trim() !== '';
+
+    // ただし、小節が開いていてもすでに定員オーバーなら一旦閉じる
+    if (isMeasureOpen && chordCount >= chordsPerMeasure) {
+      newTextSelected += '| ';
+      chordCount = 0;
+      isMeasureOpen = false;
+    }
+
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       
-      if (chordCount === 0 && token !== '<') {
-        newText += '| ';
+      if (!isMeasureOpen && token !== '<') {
+        newTextSelected += '| ';
+        isMeasureOpen = true;
       }
 
-      newText += token + ' ';
+      newTextSelected += token + ' ';
       
       if (!token.startsWith('[') && token !== '<') {
         chordCount++;
@@ -34,20 +66,35 @@ export default function ChordInputArea() {
 
       if (chordCount >= chordsPerMeasure) {
         if (i + 1 < tokens.length && tokens[i+1] === '<') {
-           // シンコペーションマーカーは直前のコードに付随するため、小節を閉じない
+          // 次がシンコペーションマーカーの場合は直前のコードに付随するため、小節を閉じない
         } else {
-           chordCount = 0;
+          newTextSelected += '| ';
+          chordCount = 0;
+          isMeasureOpen = false;
         }
       }
     }
 
-    if (!newText.endsWith('| ')) {
-      newText += '|';
-    } else {
-      newText = newText.slice(0, -2);
-    }
+    const rawNewText = textBefore + newTextSelected + textAfter;
 
-    setChordInput(newText);
+    // --- 魔法のクリーンアップ処理（|の選択有無を吸収する） ---
+    // 連続する | を1つにまとめる（例: | | -> |）
+    let cleaned = rawNewText.replace(/\|(\s*\|)+/g, '|');
+    // | の前後のスペースを綺麗に整える
+    cleaned = cleaned.replace(/\s*\|\s*/g, ' | ');
+    cleaned = cleaned.trim();
+    // 先頭・末尾の | を保証
+    if (!cleaned.startsWith('|')) cleaned = '| ' + cleaned;
+    if (!cleaned.endsWith('|')) cleaned = cleaned + ' |';
+
+    setChordInput(cleaned);
+
+    // テキストエリアにフォーカスを戻す
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 0);
   };
 
   return (
@@ -67,6 +114,7 @@ export default function ChordInputArea() {
           </div>
         )}
         <textarea
+          ref={textareaRef}
           id="chord-input"
           className="chord-editor__textarea"
           placeholder="例: | C | F G < | [Key:+1] Db |"
