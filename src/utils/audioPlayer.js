@@ -1,4 +1,5 @@
 import * as Tone from 'tone';
+import { normalizeChordNotation } from './chordUtils';
 
 // シングルトンとしてシンセサイザーとタイマーを保持
 let synth = null;
@@ -306,12 +307,7 @@ function parseChordToNotes(chordString, initialOctave, Chord, Note) {
   }
 
   // Tonal.jsが解釈しやすいように和製コード表記を標準化
-  let normalizedName = chordName;
-  normalizedName = normalizedName.replace(/m7-5/gi, 'm7b5');
-  normalizedName = normalizedName.replace(/m7\(b5\)/gi, 'm7b5');
-  normalizedName = normalizedName.replace(/maj7/gi, 'M7');
-  normalizedName = normalizedName.replace(/△7/gi, 'M7');
-  normalizedName = normalizedName.replace(/dim7/gi, 'dim7');
+  let normalizedName = normalizeChordNotation(chordName);
 
   const chordData = Chord.get(normalizedName);
   let currentOctave = initialOctave;

@@ -24,6 +24,33 @@ const DIATONIC_CHORDS_IN_C = {
 };
 
 /**
+ * 外部のコード譜サイトなどでよく見られる表記揺れを
+ * Tonal.jsが解釈可能な標準的な表記に正規化する。
+ */
+export function normalizeChordNotation(chordName) {
+  if (!chordName) return '';
+  let n = chordName;
+  
+  // 全角記号の置換
+  n = n.replace(/♭/g, 'b').replace(/♯/g, '#');
+  
+  // -5, +5, -9, +9, -11, +11, -13, +13 を b5, #5 などに変換
+  // 例: m7-5 -> m7b5, 7+9 -> 7#9
+  n = n.replace(/-([59]|11|13)/g, 'b$1');
+  n = n.replace(/\+([59]|11|13)/g, '#$1');
+  
+  // 括弧で囲まれたテンションの括弧を外す (例: C7(b9) -> C7b9, Cm7(-5) -> Cm7b5)
+  n = n.replace(/\((.*?)\)/g, '$1');
+  
+  // その他の記号の揺れ
+  n = n.replace(/△7/g, 'maj7');
+  n = n.replace(/△/g, 'maj');
+  n = n.replace(/maj7/gi, 'M7');
+  
+  return n;
+}
+
+/**
  * コードネームをRootとQualityに分割する
  * 例: "Cmaj7" -> { root: "C", quality: "maj7" }
  * 例: "F#m7b5" -> { root: "F#", quality: "m7b5" }

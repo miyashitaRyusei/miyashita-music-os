@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Chord } from '@tonaljs/tonal';
+import { normalizeChordNotation } from '../../utils/chordUtils';
 import useAppStore from '../../store/useAppStore';
 
 function isLikelyChord(token) {
@@ -7,7 +8,7 @@ function isLikelyChord(token) {
   // 漢字・ひらがな・カタカナが含まれていたら歌詞と判定して弾く
   if (/[一-龠ぁ-んァ-ヶ]/.test(token)) return false;
 
-  const normalizedToken = token.replace(/♭/g, 'b').replace(/♯/g, '#');
+  const normalizedToken = normalizeChordNotation(token);
 
   // スラッシュコードの判定 (C/B, C/E, ConE など)
   const slashMatch = normalizedToken.match(/^([A-G][#b]?[a-zA-Z0-9()]*)(?:\/|on)([A-G][#b]?)$/i);
@@ -29,9 +30,9 @@ export default function ExternalChordImportModal({ onClose }) {
     // 1. 全角スペースや改行を含めて空白文字で分割 (JSの \s は全角スペースも含む)
     const tokens = inputText.split(/\s+/);
 
-    // 2. コードと思われるものだけを抽出し、フラット・シャープを正規化
+    // 2. コードと思われるものだけを抽出し、表記を正規化
     const extractedChords = tokens
-      .map(t => t.replace(/♭/g, 'b').replace(/♯/g, '#'))
+      .map(t => normalizeChordNotation(t))
       .filter(isLikelyChord);
 
     if (extractedChords.length === 0) {
