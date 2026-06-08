@@ -341,11 +341,19 @@ const useAppStore = create((set, get) => ({
   rhythmPatterns: [],
   addRhythmPattern: async (pattern) => {
     const state = get();
-    const key = pattern.timings.map((t) => `${(t.normalizedTime || 0).toFixed(3)}:${(t.normalizedDuration || 0).toFixed(3)}`).join(',');
-    const existing = state.rhythmPatterns.find((p) => {
-      const existingKey = (p.timings || []).map((t) => `${(t.normalizedTime || 0).toFixed(3)}:${(t.normalizedDuration || 0).toFixed(3)}`).join(',');
-      return existingKey === key;
-    });
+    
+    // 浮動小数点誤差による判定ズレを防ぐため、1小節を48分割（16分音符と3連符の公倍数）のグリッドに丸めてキー化する
+    const RESOLUTION = 48;
+    const getRhythmKey = (timings) => {
+      return (timings || []).map((t) => {
+        const timeGrid = Math.round((t.normalizedTime || 0) * RESOLUTION);
+        const durGrid = Math.round((t.normalizedDuration || 0) * RESOLUTION);
+        return `${timeGrid}:${durGrid}`;
+      }).join(',');
+    };
+
+    const key = getRhythmKey(pattern.timings);
+    const existing = state.rhythmPatterns.find((p) => getRhythmKey(p.timings) === key);
 
     if (existing) {
       const newCount = (existing.count || 1) + 1;
