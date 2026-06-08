@@ -32,7 +32,6 @@ export default function PianoRollCanvas() {
   const selectedRegion = useAppStore((s) => s.selectedRegion);
   const setSelectedRegion = useAppStore((s) => s.setSelectedRegion);
   const parsedChords = useAppStore((s) => s.parsedChords);
-  const stockAttributes = useAppStore((s) => s.stockAttributes);
   const selectedChordIndices = useAppStore((s) => s.selectedChordIndices);
   const toggleChordSelection = useAppStore((s) => s.toggleChordSelection);
 
@@ -53,7 +52,7 @@ export default function PianoRollCanvas() {
 
   // --- 再生フック ---
   const { isPlaying, playbackCursor, setPlaybackCursor, togglePlayback } =
-    usePianoRollPlayback({ midiData, parsedChords, stockAttributes });
+    usePianoRollPlayback({ midiData, parsedChords });
 
   // --- ドロップフック ---
   const {

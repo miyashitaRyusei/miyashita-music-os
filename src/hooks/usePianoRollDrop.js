@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { parseMidiFile, readFileAsArrayBuffer } from '../utils/midiParser';
-import { midiToNoteName, transposeToC } from '../utils/noteUtils';
+import { midiToNoteName } from '../utils/noteUtils';
 
 /**
  * MIDIファイルのドロップ受け入れとメタデータモーダルをまとめたカスタムフック。
@@ -60,8 +60,7 @@ export function usePianoRollDrop({ setMidiData, setScrollX }) {
         maxNote,
         importedAt: new Date().toISOString(),
       });
-      const transposedData = transposeToC(dataWithTempo, rootNote);
-      setMidiData(transposedData);
+      setMidiData(dataWithTempo);
       setScrollX(0);
     } catch (err) {
       console.error('MIDI process error:', err);

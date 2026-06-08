@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { playMidiNotes, stopAudio } from '../utils/audioPlayer';
-import { transposeChord, getEffectiveKeyForMeasure } from '../utils/chordTransposer';
 
 /**
  * ピアノロールの再生・停止ロジックをまとめたカスタムフック。
  */
-export function usePianoRollPlayback({ midiData, parsedChords, stockAttributes }) {
+export function usePianoRollPlayback({ midiData, parsedChords }) {
   const [playbackCursor, setPlaybackCursor] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -27,10 +26,8 @@ export function usePianoRollPlayback({ midiData, parsedChords, stockAttributes }
           const timePerChord = midiData.measureDuration / chordsInMeasure;
           m.chords.forEach((chord, i) => {
             const time = (m.measure - 1) * midiData.measureDuration + i * timePerChord;
-            const effectiveKey = getEffectiveKeyForMeasure(m.measure - 1, parsedChords, stockAttributes.originalKey);
-            const transposedChordName = transposeChord(chord.name, effectiveKey);
             chordsToPlay.push({
-              name: transposedChordName,
+              name: chord.name,
               time,
               duration: timePerChord,
             });
