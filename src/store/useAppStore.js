@@ -447,8 +447,12 @@ const useAppStore = create((set, get) => ({
   chordProgressions: [],
   addChordProgression: async (progression) => {
     const state = get();
-    const newKey = progression.chords.join('|');
-    const existing = state.chordProgressions.find((p) => (p.chords || []).join('|') === newKey);
+    // オブジェクトの配列を正しく文字列化してキーを作成する
+    const getChordKey = (chords) => {
+      return (chords || []).map((c) => (typeof c === 'object' ? `${c.name}:${c.beats}` : String(c))).join('|');
+    };
+    const newKey = getChordKey(progression.chords);
+    const existing = state.chordProgressions.find((p) => getChordKey(p.chords) === newKey);
 
     if (existing) {
       const mergedSections = [...new Set([...(existing.sections || []), ...(progression.sections || [])])];
