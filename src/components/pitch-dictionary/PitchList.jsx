@@ -30,9 +30,8 @@ function PitchPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const togglePitchFavorite = useAppStore((s) => s.togglePitchFavorite);
 
-  // バッジのスタイル計算
-  const sourceClass = pattern.source === '自作曲' || pattern.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
-  const prefClass = pattern.preference === '好き' || pattern.preference === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
+  const getSourceClass = (src) => src === '自作曲' || src === 'original' ? 'badge-source--original' : 'badge-source--reference';
+  const getPrefClass = (pref) => pref === '好き' || pref === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
   const getSectionClass = (sec) => {
     switch (sec) {
       case 'イントロ': return 'badge-section--intro';
@@ -45,6 +44,11 @@ function PitchPatternItem({ pattern }) {
       default: return 'badge-section--a';
     }
   };
+
+  const sourceClass = getSourceClass(pattern.source);
+  const prefClass = getPrefClass(pattern.preference);
+
+  const [showHistory, setShowHistory] = useState(false);
 
   // --- グラフ描画用のデータ計算 ---
   const values = pattern.degrees.map(degreeToValue);
@@ -186,14 +190,56 @@ function PitchPatternItem({ pattern }) {
       </div>
 
       <div className="dict-card__meta" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-        <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
-        <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
-        {pattern.section && (
-          <span className={`badge-tag ${getSectionClass(pattern.section)}`}>
-            {pattern.section.replace('_', ' ')}
-          </span>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <span className={`badge-tag ${sourceClass}`}>{pattern.source === 'original' ? '自作曲' : pattern.source}</span>
+          <span className={`badge-tag ${prefClass}`}>{pattern.preference === 'like' ? '好き' : pattern.preference}</span>
+          {pattern.section && (
+            <span className={`badge-tag ${getSectionClass(pattern.section)}`}>
+              {pattern.section.replace('_', ' ')}
+            </span>
+          )}
+        </div>
+        {pattern.history && pattern.history.length > 1 && (
+          <button 
+            className="btn btn--sm btn--ghost" 
+            style={{ padding: '2px 6px', fontSize: '0.75rem', height: 'auto', minHeight: 'unset', color: 'var(--accent-orange)' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowHistory(true);
+            }}
+          >
+            +他{pattern.history.length - 1}件
+          </button>
         )}
       </div>
+
+      {showHistory && (
+        <div className="modal-overlay" onClick={(e) => { e.stopPropagation(); setShowHistory(false); }} style={{ zIndex: 9999 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', width: '90%' }}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>ストック履歴</h2>
+              <button className="modal-close" onClick={() => setShowHistory(false)}>×</button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <p style={{ marginBottom: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                このパターンは以下の楽曲・セクションでストックされています。
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {(pattern.history || []).map((h, i) => (
+                  <li key={i} style={{ background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{h.song_title || '不明な楽曲'}</div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <span className={`badge-tag ${getSourceClass(h.source)}`}>{h.source}</span>
+                      <span className={`badge-tag ${getPrefClass(h.preference)}`}>{h.preference}</span>
+                      {h.section && <span className={`badge-tag ${getSectionClass(h.section)}`}>{h.section}</span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -296,10 +296,24 @@ const useAppStore = create((set, get) => ({
 
     if (existing) {
       const newCount = (existing.count || 1) + 1;
-      const { error } = await supabase.from('pitch_patterns').update({ count: newCount }).eq('id', existing.id);
+      const historyItem = {
+        song_id: pattern.songId,
+        song_title: state.registeredSongs.find((s) => s.id === pattern.songId)?.title || '不明な楽曲',
+        source: pattern.source,
+        preference: pattern.preference,
+        section: pattern.section,
+        timestamp: new Date().toISOString()
+      };
+      const newHistory = [...(existing.history || []), historyItem];
+
+      const { error } = await supabase.from('pitch_patterns').update({ 
+        count: newCount,
+        history: newHistory
+      }).eq('id', existing.id);
+      
       if (!error) {
         set((state) => ({
-          pitchPatterns: state.pitchPatterns.map((p) => p.id === existing.id ? { ...p, count: newCount } : p),
+          pitchPatterns: state.pitchPatterns.map((p) => p.id === existing.id ? { ...p, count: newCount, history: newHistory } : p),
         }));
       }
     } else {
@@ -310,7 +324,15 @@ const useAppStore = create((set, get) => ({
         count: 1,
         source: pattern.source,
         preference: pattern.preference,
-        section: pattern.section
+        section: pattern.section,
+        history: [{
+          song_id: pattern.songId,
+          song_title: state.registeredSongs.find((s) => s.id === pattern.songId)?.title || '不明な楽曲',
+          source: pattern.source,
+          preference: pattern.preference,
+          section: pattern.section,
+          timestamp: new Date().toISOString()
+        }]
       };
       const { error } = await supabase.from('pitch_patterns').insert([dbPattern]);
       if (!error) {
@@ -357,10 +379,24 @@ const useAppStore = create((set, get) => ({
 
     if (existing) {
       const newCount = (existing.count || 1) + 1;
-      const { error } = await supabase.from('rhythm_patterns').update({ count: newCount }).eq('id', existing.id);
+      const historyItem = {
+        song_id: pattern.songId,
+        song_title: state.registeredSongs.find((s) => s.id === pattern.songId)?.title || '不明な楽曲',
+        source: pattern.source,
+        preference: pattern.preference,
+        section: pattern.section,
+        timestamp: new Date().toISOString()
+      };
+      const newHistory = [...(existing.history || []), historyItem];
+
+      const { error } = await supabase.from('rhythm_patterns').update({ 
+        count: newCount,
+        history: newHistory
+      }).eq('id', existing.id);
+      
       if (!error) {
         set((state) => ({
-          rhythmPatterns: state.rhythmPatterns.map((p) => p.id === existing.id ? { ...p, count: newCount } : p),
+          rhythmPatterns: state.rhythmPatterns.map((p) => p.id === existing.id ? { ...p, count: newCount, history: newHistory } : p),
         }));
       }
     } else {
@@ -372,7 +408,15 @@ const useAppStore = create((set, get) => ({
         count: 1,
         source: pattern.source,
         preference: pattern.preference,
-        section: pattern.section
+        section: pattern.section,
+        history: [{
+          song_id: pattern.songId,
+          song_title: state.registeredSongs.find((s) => s.id === pattern.songId)?.title || '不明な楽曲',
+          source: pattern.source,
+          preference: pattern.preference,
+          section: pattern.section,
+          timestamp: new Date().toISOString()
+        }]
       };
       const { error } = await supabase.from('rhythm_patterns').insert([dbPattern]);
       if (!error) {
