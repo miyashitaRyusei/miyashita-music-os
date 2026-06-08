@@ -7,15 +7,17 @@ function isLikelyChord(token) {
   // 漢字・ひらがな・カタカナが含まれていたら歌詞と判定して弾く
   if (/[一-龠ぁ-んァ-ヶ]/.test(token)) return false;
 
+  const normalizedToken = token.replace(/♭/g, 'b').replace(/♯/g, '#');
+
   // スラッシュコードの判定 (C/B, C/E, ConE など)
-  const slashMatch = token.match(/^([A-G][#b]?[a-zA-Z0-9()]*)(?:\/|on)([A-G][#b]?)$/i);
+  const slashMatch = normalizedToken.match(/^([A-G][#b]?[a-zA-Z0-9()]*)(?:\/|on)([A-G][#b]?)$/i);
   if (slashMatch) {
     const baseChord = slashMatch[1];
     return !Chord.get(baseChord).empty;
   }
 
   // スラッシュがない通常のコード
-  return !Chord.get(token).empty;
+  return !Chord.get(normalizedToken).empty;
 }
 
 export default function ExternalChordImportModal({ onClose }) {
@@ -27,8 +29,10 @@ export default function ExternalChordImportModal({ onClose }) {
     // 1. 全角スペースや改行を含めて空白文字で分割 (JSの \s は全角スペースも含む)
     const tokens = inputText.split(/\s+/);
 
-    // 2. コードと思われるものだけを抽出
-    const extractedChords = tokens.filter(isLikelyChord);
+    // 2. コードと思われるものだけを抽出し、フラット・シャープを正規化
+    const extractedChords = tokens
+      .map(t => t.replace(/♭/g, 'b').replace(/♯/g, '#'))
+      .filter(isLikelyChord);
 
     if (extractedChords.length === 0) {
       alert('コードが1つも見つかりませんでした。テキストを確認してください。');
@@ -58,7 +62,7 @@ export default function ExternalChordImportModal({ onClose }) {
         style={{ maxWidth: '600px', width: '90%' }}
       >
         <div className="modal-header">
-          <h2>🤖 外部テキストからコードを一括インポート</h2>
+          <h2>外部テキストからコードを一括インポート</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         
