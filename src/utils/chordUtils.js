@@ -42,6 +42,20 @@ export function normalizeChordNotation(chordName) {
   // 括弧で囲まれたテンションの括弧を外す (例: C7(b9) -> C7b9, Cm7(-5) -> Cm7b5)
   n = n.replace(/\((.*?)\)/g, '$1');
   
+  // ナチュラルテンション（9, 11, 13）の場合は、7を省略する Tonal.js の仕様に合わせる
+  // maj, M, △ は大文字小文字区別する（Mはメジャー、mはマイナーのため）
+  n = n.replace(/(M|maj|Maj|MAJ|△)79/g, 'maj9');
+  n = n.replace(/(M|maj|Maj|MAJ|△)711/g, 'maj11');
+  n = n.replace(/(M|maj|Maj|MAJ|△)713/g, 'maj13');
+  n = n.replace(/m79/g, 'm9');
+  n = n.replace(/m711/g, 'm11');
+  n = n.replace(/m713/g, 'm13');
+  // 属七のナチュラルテンション（例: 79 -> 9）
+  // b79や#79にならないように、数字の79だけを置換
+  n = n.replace(/(?<![#b])79/g, '9');
+  n = n.replace(/(?<![#b])711/g, '11');
+  n = n.replace(/(?<![#b])713/g, '13');
+  
   // その他の記号の揺れ
   n = n.replace(/△7/g, 'maj7');
   n = n.replace(/△/g, 'maj');
