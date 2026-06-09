@@ -356,7 +356,17 @@ const useAppStore = create((set, get) => ({
     const newVal = !pattern.is_favorite;
     const { error } = await supabase.from('pitch_patterns').update({ is_favorite: newVal }).eq('id', id);
     if (!error) {
-      set((s) => ({ pitchPatterns: s.pitchPatterns.map((p) => p.id === id ? { ...p, is_favorite: newVal } : p) }));
+      set((state) => ({
+        pitchPatterns: state.pitchPatterns.map(p => p.id === id ? { ...p, is_favorite: newVal } : p)
+      }));
+    }
+  },
+  editPitchPattern: async (id, updates) => {
+    const { error } = await supabase.from('pitch_patterns').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({
+        pitchPatterns: state.pitchPatterns.map(p => p.id === id ? { ...p, ...updates } : p)
+      }));
     }
   },
 
@@ -440,7 +450,17 @@ const useAppStore = create((set, get) => ({
     const newVal = !pattern.is_favorite;
     const { error } = await supabase.from('rhythm_patterns').update({ is_favorite: newVal }).eq('id', id);
     if (!error) {
-      set((s) => ({ rhythmPatterns: s.rhythmPatterns.map((p) => p.id === id ? { ...p, is_favorite: newVal } : p) }));
+      set((state) => ({
+        rhythmPatterns: state.rhythmPatterns.map(p => p.id === id ? { ...p, is_favorite: newVal } : p)
+      }));
+    }
+  },
+  editRhythmPattern: async (id, updates) => {
+    const { error } = await supabase.from('rhythm_patterns').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({
+        rhythmPatterns: state.rhythmPatterns.map(p => p.id === id ? { ...p, ...updates } : p)
+      }));
     }
   },
 
@@ -497,7 +517,17 @@ const useAppStore = create((set, get) => ({
     const newVal = !prog.is_favorite;
     const { error } = await supabase.from('chord_progressions').update({ is_favorite: newVal }).eq('id', id);
     if (!error) {
-      set((s) => ({ chordProgressions: s.chordProgressions.map((p) => p.id === id ? { ...p, is_favorite: newVal } : p) }));
+      set((state) => ({
+        chordProgressions: state.chordProgressions.map(p => p.id === id ? { ...p, is_favorite: newVal } : p)
+      }));
+    }
+  },
+  editChordPattern: async (id, updates) => {
+    const { error } = await supabase.from('chord_progressions').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({
+        chordProgressions: state.chordProgressions.map(p => p.id === id ? { ...p, ...updates } : p)
+      }));
     }
   },
 

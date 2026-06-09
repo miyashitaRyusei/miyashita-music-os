@@ -4,12 +4,15 @@ import { playPitchSequence, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
 import PitchAdvancedFilter from './PitchAdvancedFilter';
-import { TrashIcon, PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/outline';
+import EditTagsModal from '../common/EditTagsModal';
+import { TrashIcon, PlayCircleIcon, StopCircleIcon, PencilIcon } from '@heroicons/react/24/outline';
 import PitchPatternCanvas from './PitchPatternCanvas';
 
 function PitchPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const togglePitchFavorite = useAppStore((s) => s.togglePitchFavorite);
+  const editPitchPattern = useAppStore((s) => s.editPitchPattern);
 
   const getSourceClass = (src) => src === '自作曲' || src === 'original' ? 'badge-source--original' : 'badge-source--reference';
   const getPrefClass = (pref) => pref === '好き' || pref === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
@@ -75,6 +78,17 @@ function PitchPatternItem({ pattern }) {
             title={pattern.is_favorite ? 'お気に入りを解除' : 'お気に入りに登録'}
           >
             {pattern.is_favorite ? '★' : '☆'}
+          </button>
+          <button 
+            className="btn btn--sm btn--ghost" 
+            style={{ color: 'var(--text-secondary)', padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            title="タグを編集"
+          >
+            <PencilIcon style={{ width: '18px', height: '18px' }} />
           </button>
           <button 
             className="btn btn--sm btn--ghost" 
@@ -146,6 +160,15 @@ function PitchPatternItem({ pattern }) {
             </div>
           </div>
         </div>
+      )}
+
+      {isEditing && (
+        <EditTagsModal
+          pattern={pattern}
+          type="pitch"
+          onSave={editPitchPattern}
+          onClose={() => setIsEditing(false)}
+        />
       )}
     </div>
   );

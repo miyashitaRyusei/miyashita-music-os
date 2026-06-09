@@ -3,11 +3,14 @@ import useAppStore from '../../store/useAppStore';
 import { playChordProgression, stopAudio } from '../../utils/audioPlayer';
 import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
+import EditTagsModal from '../common/EditTagsModal';
 import ChordAdvancedFilter from './ChordAdvancedFilter';
-import { TrashIcon, PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, PlayCircleIcon, StopCircleIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
+  const [isEditing, setIsEditing] = useState(false);
   const toggleChordFavorite = useAppStore((s) => s.toggleChordFavorite);
+  const editChordPattern = useAppStore((s) => s.editChordPattern);
   // バッジのスタイル計算
   const sourceClass = progression.source === '自作曲' || progression.source === 'original' ? 'badge-source--original' : 'badge-source--reference';
   const prefClass = progression.preference === '好き' || progression.preference === 'like' ? 'badge-pref--like' : 'badge-pref--dislike';
@@ -104,6 +107,17 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
           </button>
           <button 
             className="btn btn--sm btn--ghost" 
+            style={{ color: 'var(--text-secondary)', padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            title="タグを編集"
+          >
+            <PencilIcon style={{ width: '18px', height: '18px' }} />
+          </button>
+          <button 
+            className="btn btn--sm btn--ghost" 
             style={{ color: '#ef4444', padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={(e) => {
               e.stopPropagation();
@@ -173,6 +187,15 @@ function ChordProgressionItem({ progression, isPlaying, onTogglePlay }) {
           </span>
         ) : null)}
       </div>
+
+      {isEditing && (
+        <EditTagsModal
+          pattern={progression}
+          type="chord"
+          onSave={editChordPattern}
+          onClose={() => setIsEditing(false)}
+        />
+      )}
     </div>
   );
 }
