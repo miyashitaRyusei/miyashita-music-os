@@ -176,13 +176,15 @@ export default function MelodyMaker() {
             </button>
           </div>
 
-          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
-            {basePatterns.map(pattern => 
-              baseType === 'pitch' 
-                ? renderPitchCard(pattern, selectedBaseId === pattern.id, handleBaseSelect)
-                : renderRhythmCard(pattern, selectedBaseId === pattern.id, handleBaseSelect)
-            )}
-            {basePatterns.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>辞書にデータがありません</p>}
+          <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {basePatterns.map(pattern => 
+                baseType === 'pitch' 
+                  ? renderPitchCard(pattern, selectedBaseId === pattern.id, handleBaseSelect)
+                  : renderRhythmCard(pattern, selectedBaseId === pattern.id, handleBaseSelect)
+              )}
+              {basePatterns.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>辞書にデータがありません</p>}
+            </div>
           </div>
         </div>
 
@@ -197,13 +199,15 @@ export default function MelodyMaker() {
               先にベースとなるパターンを選択してください
             </div>
           ) : (
-            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
-              {targetPatterns.map(pattern => 
-                baseType === 'pitch' 
-                  ? renderRhythmCard(pattern, selectedTargetId === pattern.id, handleTargetSelect)
-                  : renderPitchCard(pattern, selectedTargetId === pattern.id, handleTargetSelect)
-              )}
-              {targetPatterns.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>同じ音数のパターンがありません</p>}
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {targetPatterns.map(pattern => 
+                  baseType === 'pitch' 
+                    ? renderRhythmCard(pattern, selectedTargetId === pattern.id, handleTargetSelect)
+                    : renderPitchCard(pattern, selectedTargetId === pattern.id, handleTargetSelect)
+                )}
+                {targetPatterns.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>同じ音数のパターンがありません</p>}
+              </div>
             </div>
           )}
         </div>
@@ -249,13 +253,14 @@ export default function MelodyMaker() {
           <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>保存したメロディ</h2>
             
-            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
-              {generatedMelodies.map(melody => {
-                const pitchPattern = pitchPatterns.find(p => p.id === melody.pitch_pattern_id);
-                const rhythmPattern = rhythmPatterns.find(r => r.id === melody.rhythm_pattern_id);
-                if (!pitchPattern || !rhythmPattern) return null;
-                
-                const noteCount = (pitchPattern.degrees || []).length;
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {generatedMelodies.map(melody => {
+                  const pitchPattern = pitchPatterns.find(p => p.id === melody.pitch_pattern_id);
+                  const rhythmPattern = rhythmPatterns.find(r => r.id === melody.rhythm_pattern_id);
+                  if (!pitchPattern || !rhythmPattern) return null;
+                  
+                  const noteCount = (pitchPattern.degrees || []).length;
 
                 return (
                   <div key={melody.id} style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '12px', position: 'relative' }}>
@@ -289,6 +294,7 @@ export default function MelodyMaker() {
               })}
               {generatedMelodies.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>保存されたメロディはありません</p>}
             </div>
+          </div>
           </div>
         </div>
 
