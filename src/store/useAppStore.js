@@ -22,13 +22,15 @@ const useAppStore = create((set, get) => ({
         { data: pitches },
         { data: rhythms },
         { data: chords },
-        { data: melodyChords }
+        { data: melodyChords },
+        { data: generatedMelodies }
       ] = await Promise.all([
         supabase.from('songs').select('*').order('imported_at', { ascending: false }),
         supabase.from('pitch_patterns').select('*').order('created_at', { ascending: false }),
         supabase.from('rhythm_patterns').select('*').order('created_at', { ascending: false }),
         supabase.from('chord_progressions').select('*').order('created_at', { ascending: false }),
         supabase.from('melody_chord_relations').select('*').order('created_at', { ascending: false }),
+        supabase.from('generated_melodies').select('*').order('created_at', { ascending: false }),
       ]);
 
       set({
@@ -45,6 +47,7 @@ const useAppStore = create((set, get) => ({
         rhythmPatterns: (rhythms || []).map(r => ({ ...r, songId: r.song_id })),
         chordProgressions: (chords || []).map(c => ({ ...c, songId: c.song_id })),
         melodyChordRelations: (melodyChords || []).map(m => ({ ...m, songId: m.song_id, melodyDegree: m.melody_degree, chordName: m.chord_name })),
+        generatedMelodies: generatedMelodies || [],
       });
     } catch (err) {
       console.error('Error fetching data from Supabase:', err);
@@ -545,6 +548,27 @@ const useAppStore = create((set, get) => ({
     const { error } = await supabase.from('melody_chord_relations').delete().eq('id', id);
     if (!error) {
       set((state) => ({ melodyChordRelations: state.melodyChordRelations.filter((r) => r.id !== id) }));
+    }
+  },
+
+  // ============================================
+  // Generated Melodies (Melody Maker)
+  // ============================================
+  generatedMelodies: [],
+  saveGeneratedMelody: async (pitchPatternId, rhythmPatternId) => {
+    const dbMelody = {
+      pitch_pattern_id: pitchPatternId,
+      rhythm_pattern_id: rhythmPatternId,
+    };
+    const { data, error } = await supabase.from('generated_melodies').insert([dbMelody]).select().single();
+    if (!error && data) {
+      set((state) => ({ generatedMelodies: [data, ...state.generatedMelodies] }));
+    }
+  },
+  removeGeneratedMelody: async (id) => {
+    const { error } = await supabase.from('generated_melodies').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ generatedMelodies: state.generatedMelodies.filter((m) => m.id !== id) }));
     }
   },
 

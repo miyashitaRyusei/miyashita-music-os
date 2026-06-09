@@ -153,6 +153,45 @@ export async function playRhythmSequence(timings, onEnd) {
 }
 
 /**
+ * ピッチとリズムを組み合わせたパターンの再生
+ * degrees: ['ド', 'レ', ...]
+ * timings: [{ start: 0, duration: 0.5 }, ...]
+ */
+export async function playCombinedSequence(degrees, timings, onEnd) {
+  stopAudio();
+  await initTone();
+  
+  const now = Tone.now();
+  const bps = 120 / 60; // 120 BPM
+  
+  let maxEndTime = 0;
+
+  for (let i = 0; i < timings.length; i++) {
+    const timing = timings[i];
+    const degree = degrees[i];
+    if (!degree) continue; // 音数が足りない場合は無視
+
+    const note = DEGREE_TO_NOTE[degree] || 'C4';
+    
+    const startTime = timing.start / bps;
+    const durationTime = timing.duration / bps;
+    
+    melodySynth.triggerAttackRelease(note, durationTime, now + startTime);
+    
+    if (startTime + durationTime > maxEndTime) {
+      maxEndTime = startTime + durationTime;
+    }
+  }
+
+  if (onEnd) {
+    currentTimeoutId = setTimeout(() => {
+      onEnd();
+      currentTimeoutId = null;
+    }, maxEndTime * 1000 + 200);
+  }
+}
+
+/**
  * 生のMIDIノート配列を再生する
  * @param {Array} notes - { name: 'C4', time: 0, duration: 1 } のような形式の配列
  * @param {number} startSeconds - 再生開始位置（秒）

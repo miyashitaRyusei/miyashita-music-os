@@ -6,6 +6,8 @@ import Workspace from './pages/Workspace';
 import PitchDictionary from './pages/PitchDictionary';
 import RhythmDictionary from './pages/RhythmDictionary';
 import ChordDictionary from './pages/ChordDictionary';
+import MelodyMaker from './pages/MelodyMaker';
+import Admin from './pages/Admin';
 import MelodyChordDictionary from './pages/MelodyChordDictionary';
 import SongRegistry from './pages/SongRegistry';
 import MyLibrary from './pages/MyLibrary';
@@ -44,6 +46,8 @@ export default function App() {
           <Route path="/pitch-dictionary" element={<PitchDictionary />} />
           <Route path="/rhythm-dictionary" element={<RhythmDictionary />} />
           <Route path="/chord-dictionary" element={<ChordDictionary />} />
+          <Route path="/melody-maker" element={<MelodyMaker />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/melody-chord-dictionary" element={<MelodyChordDictionary />} />
           <Route path="/my-library" element={<MyLibrary />} />
         </Route>
