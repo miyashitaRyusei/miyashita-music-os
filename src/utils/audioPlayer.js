@@ -157,18 +157,40 @@ export async function playRhythmSequence(timings, onEnd) {
  * degrees: ['ド', 'レ', ...]
  * timings: [{ start: 0, duration: 0.5 }, ...]
  */
-export async function playCombinedSequence(degrees, timings, onEnd) {
+export async function playCombinedSequence(degrees, timings, bpm = 120, onEnd) {
   stopAudio();
   await initTone();
   
   const now = Tone.now();
-  const measureSeconds = 2.0; // 120BPMの4/4拍子は1小節2秒
+  // BPMから1小節(4拍)の秒数を計算
+  const measureSeconds = (60 / bpm) * 4; 
   
   // アウフタクト対策
   const minTime = Math.min(...timings.map(t => t.normalizedTime), 0);
   const offset = Math.abs(minTime);
+  const maxTimeNormalized = Math.max(1.0, ...timings.map(t => t.normalizedTime + t.normalizedDuration));
 
   let maxEndTime = 0;
+
+  // メトロノームのクリック音を鳴らす
+  const startBeat = Math.floor(minTime * 4);
+  const endBeat = Math.ceil(maxTimeNormalized * 4);
+  
+  for (let i = startBeat; i <= endBeat; i++) {
+    const isZero = i === 0;
+    const isDownbeat = i % 4 === 0;
+    // 0地点はC6(一番高い音)、その他の小節頭はG5、それ以外はC5
+    const clickNote = isZero ? 'C6' : (isDownbeat ? 'G5' : 'C5');
+    const clickTime = now + (i * 0.25 + offset) * measureSeconds;
+    // 音量: 0地点(0.8) > 小節頭(0.5) > その他(0.3)
+    const velocity = isZero ? 0.8 : (isDownbeat ? 0.5 : 0.3);
+    
+    synth.triggerAttackRelease(clickNote, 0.05, clickTime, velocity);
+    
+    if (clickTime + 0.05 > maxEndTime) {
+      maxEndTime = clickTime + 0.05;
+    }
+  }
 
   for (let i = 0; i < timings.length; i++) {
     const timing = timings[i];

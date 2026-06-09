@@ -4,6 +4,7 @@ import { playCombinedSequence, stopAudio } from '../utils/audioPlayer';
 import { PlayIcon, BookmarkIcon, TrashIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
 import { PlayIcon as PlayIconSolid, StopIcon as StopIconSolid } from '@heroicons/react/24/solid';
 import RhythmPatternCanvas from '../components/rhythm-dictionary/RhythmPatternCanvas';
+import PitchPatternCanvas from '../components/pitch-dictionary/PitchPatternCanvas';
 
 export default function MelodyMaker() {
   const { 
@@ -19,11 +20,23 @@ export default function MelodyMaker() {
   const [selectedBaseId, setSelectedBaseId] = useState(null);
   const [selectedTargetId, setSelectedTargetId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // 新機能: ベースの音数フィルタリングとテンポ調整
+  const [baseNoteCountFilter, setBaseNoteCountFilter] = useState('');
+  const [tempo, setTempo] = useState(120);
 
-  // ベースとなるパターンのリスト
+  // ベースパターンのリスト（音数でフィルタリング対応）
   const basePatterns = useMemo(() => {
-    return baseType === 'pitch' ? pitchPatterns : rhythmPatterns;
-  }, [baseType, pitchPatterns, rhythmPatterns]);
+    let patterns = baseType === 'pitch' ? pitchPatterns : rhythmPatterns;
+    if (baseNoteCountFilter !== '') {
+      const targetCount = parseInt(baseNoteCountFilter, 10);
+      patterns = patterns.filter(p => {
+        const count = baseType === 'pitch' ? (p.degrees || []).length : (p.timings || []).length;
+        return count === targetCount;
+      });
+    }
+    return patterns;
+  }, [baseType, pitchPatterns, rhythmPatterns, baseNoteCountFilter]);
 
   // 選択されたベースパターン
   const selectedBase = useMemo(() => {
@@ -57,6 +70,14 @@ export default function MelodyMaker() {
     }
   }, [baseType, rhythmPatterns, pitchPatterns, selectedTargetId]);
 
+  const handleBaseTypeSwitch = (type) => {
+    setBaseType(type);
+    setSelectedBaseId(null);
+    setSelectedTargetId(null);
+    stopAudio();
+    setIsPlaying(false);
+  };
+
   const handleBaseSelect = (id) => {
     setSelectedBaseId(id);
     setSelectedTargetId(null);
@@ -70,7 +91,7 @@ export default function MelodyMaker() {
     setIsPlaying(false);
   };
 
-  const handlePlayCombination = () => {
+  const handlePlayCombo = async () => {
     if (!selectedBase || !selectedTarget) return;
     
     if (isPlaying) {
@@ -83,7 +104,7 @@ export default function MelodyMaker() {
     const pitch = baseType === 'pitch' ? selectedBase : selectedTarget;
     const rhythm = baseType === 'pitch' ? selectedTarget : selectedBase;
 
-    playCombinedSequence(pitch.degrees, rhythm.timings, () => {
+    await playCombinedSequence(pitch.degrees, rhythm.timings, tempo, () => {
       setIsPlaying(false);
     });
   };
@@ -110,18 +131,14 @@ export default function MelodyMaker() {
         key={pattern.id}
         className={`dict-card ${isSelected ? 'selected' : ''}`}
         onClick={() => onClick(pattern.id)}
-        style={{ cursor: 'pointer', border: isSelected ? '2px solid var(--accent-blue)' : 'none' }}
+        style={{ cursor: 'pointer', border: isSelected ? '2px solid var(--accent-blue)' : 'none', minHeight: '120px' }}
       >
         <div className="dict-card__header">
           <div className="dict-card__title">{song?.title || '不明な楽曲'}</div>
-        </div>
-        <div className="dict-card__body">
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
-            {(pattern.degrees || []).map((deg, i) => (
-              <span key={i} className="pitch-badge">{deg}</span>
-            ))}
-          </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>音数: {(pattern.degrees || []).length}音</div>
+        </div>
+        <div className="dict-card__body" style={{ height: '80px', position: 'relative' }}>
+          <PitchPatternCanvas degrees={pattern.degrees || []} id={pattern.id} height={80} />
         </div>
       </div>
     );
@@ -160,20 +177,37 @@ export default function MelodyMaker() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: '12px', padding: '16px', overflow: 'hidden' }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>1. ベースを選ぶ</h2>
           
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-            <button 
-              className={`btn ${baseType === 'pitch' ? 'btn--primary' : 'btn--ghost'}`}
-              onClick={() => { setBaseType('pitch'); setSelectedBaseId(null); setSelectedTargetId(null); }}
-            >
-              ピッチから選ぶ
-            </button>
-            <button 
-              className={`btn ${baseType === 'rhythm' ? 'btn--primary' : 'btn--ghost'}`}
-              style={{ backgroundColor: baseType === 'rhythm' ? 'var(--accent-orange)' : '' }}
-              onClick={() => { setBaseType('rhythm'); setSelectedBaseId(null); setSelectedTargetId(null); }}
-            >
-              リズムから選ぶ
-            </button>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className={`btn ${baseType === 'pitch' ? 'btn--primary' : 'btn--outline'}`}
+                onClick={() => handleBaseTypeSwitch('pitch')}
+                style={{ flex: 1 }}
+              >
+                ピッチから選ぶ
+              </button>
+              <button 
+                className={`btn ${baseType === 'rhythm' ? 'btn--primary' : 'btn--outline'}`}
+                onClick={() => handleBaseTypeSwitch('rhythm')}
+                style={{ flex: 1 }}
+              >
+                リズムから選ぶ
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>音数フィルタ:</span>
+              <select 
+                value={baseNoteCountFilter} 
+                onChange={(e) => setBaseNoteCountFilter(e.target.value)}
+                style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-default)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="">すべて表示</option>
+                {[...Array(16)].map((_, i) => (
+                  <option key={i+1} value={i+1}>{i+1}音</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px' }}>
@@ -218,7 +252,21 @@ export default function MelodyMaker() {
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>3. プレビュー＆保存</h2>
             
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '24px 0' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
+              
+              {/* テンポ調整 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '200px' }}>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>BPM: {tempo}</span>
+                <input 
+                  type="range" 
+                  min="60" 
+                  max="240" 
+                  value={tempo} 
+                  onChange={(e) => setTempo(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+              </div>
+
               <button 
                 className="btn btn--lg"
                 style={{ 
@@ -233,7 +281,7 @@ export default function MelodyMaker() {
                   cursor: (selectedBase && selectedTarget) ? 'pointer' : 'not-allowed'
                 }}
                 disabled={!selectedBase || !selectedTarget}
-                onClick={handlePlayCombination}
+                onClick={handlePlayCombo}
               >
                 {isPlaying ? <StopIconSolid style={{ width: '32px', height: '32px' }} /> : <PlayIconSolid style={{ width: '32px', height: '32px', marginLeft: '4px' }} />}
               </button>
@@ -271,7 +319,7 @@ export default function MelodyMaker() {
                           className="btn btn--sm btn--ghost"
                           onClick={() => {
                             stopAudio();
-                            playCombinedSequence(pitchPattern.degrees, rhythmPattern.timings);
+                            playCombinedSequence(pitchPattern.degrees, rhythmPattern.timings, tempo);
                           }}
                         >
                           <PlayIcon style={{ width: '14px', height: '14px' }} />

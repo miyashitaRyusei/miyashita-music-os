@@ -5,26 +5,7 @@ import { useDictionaryFilter } from '../../hooks/useDictionaryFilter';
 import CommonFilter from '../common/CommonFilter';
 import PitchAdvancedFilter from './PitchAdvancedFilter';
 import { TrashIcon, PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/outline';
-
-// 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
-function degreeToValue(degreeStr) {
-  const baseMap = {
-    'ド': 0, 'ド#': 1, 'レ': 2, 'レ#': 3, 'ミ': 4, 'ファ': 5, 'ファ#': 6,
-    'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11,
-    // 既存データ（Do, Re）へのフォールバック対応
-    'Do': 0, 'Do#': 1, 'Re': 2, 'Re#': 3, 'Mi': 4, 'Fa': 5, 'Fa#': 6,
-    'Sol': 7, 'Sol#': 8, 'La': 9, 'La#': 10, 'Si': 11
-  };
-  
-  let name = degreeStr.replace(/[↑↓]/g, '');
-  let val = baseMap[name] !== undefined ? baseMap[name] : 0;
-  
-  // オクターブシフトの計算
-  const upCount = (degreeStr.match(/↑/g) || []).length;
-  const downCount = (degreeStr.match(/↓/g) || []).length;
-  
-  return val + (upCount * 12) - (downCount * 12);
-}
+import PitchPatternCanvas from './PitchPatternCanvas';
 
 function PitchPatternItem({ pattern }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,36 +31,7 @@ function PitchPatternItem({ pattern }) {
 
   const [showHistory, setShowHistory] = useState(false);
 
-  // --- グラフ描画用のデータ計算 ---
-  const values = pattern.degrees.map(degreeToValue);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
-  const range = maxVal - minVal;
-  
-  const SVG_WIDTH = 400;
-  const SVG_HEIGHT = 80;
-  const PADDING_X = 30;
-  const PADDING_Y = 20;
-
-  // X座標の計算（等間隔）
-  const getX = (index) => {
-    if (values.length <= 1) return SVG_WIDTH / 2;
-    return PADDING_X + (index / (values.length - 1)) * (SVG_WIDTH - PADDING_X * 2);
-  };
-
-  // Y座標の計算（値の範囲に応じてスケーリング）
-  const getY = (val) => {
-    if (range === 0) return SVG_HEIGHT / 2;
-    // Y軸は上がマイナス（0）なので反転させる
-    const normalized = (val - minVal) / range;
-    return SVG_HEIGHT - PADDING_Y - normalized * (SVG_HEIGHT - PADDING_Y * 2);
-  };
-
-  const points = values.map((val, i) => `${getX(i)},${getY(val)}`).join(' ');
-  // 下に塗りつぶすためのポリゴン座標（線の終点から下へ、始点の下へ、そして始点へ戻る）
-  const polygonPoints = values.length > 0 
-    ? `${points} ${getX(values.length - 1)},${SVG_HEIGHT} ${getX(0)},${SVG_HEIGHT}` 
-    : '';
+  const [showHistory, setShowHistory] = useState(false);
 
   const handlePlay = async (e) => {
     e.stopPropagation();
@@ -143,46 +95,6 @@ function PitchPatternItem({ pattern }) {
       </div>
 
       <div className="dict-card__visual">
-        <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="pitch-sparkline">
-          <defs>
-            <linearGradient id={`grad-${encodeURIComponent(pattern.id).replace(/%/g, '_')}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          
-          {/* 背景のグリッド線（中央） */}
-          <line x1="0" y1={SVG_HEIGHT/2} x2={SVG_WIDTH} y2={SVG_HEIGHT/2} className="pitch-sparkline__grid" />
-          
-          {/* エリアチャート（塗りつぶし） */}
-          {polygonPoints && (
-            <polygon points={polygonPoints} fill={`url(#grad-${encodeURIComponent(pattern.id).replace(/%/g, '_')})`} />
-          )}
-
-          {/* 折れ線 */}
-          <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3 }} />
-          
-          {/* プロット点と音名ラベル */}
-          {values.map((val, i) => {
-            const degreeStr = pattern.degrees[i];
-            const isNonDiatonic = degreeStr.includes('#');
-            const color = isNonDiatonic ? 'var(--accent-orange)' : 'currentColor';
-            
-            return (
-              <g key={i}>
-                <circle cx={getX(i)} cy={getY(val)} r="4" 
-                  className="pitch-sparkline__point" 
-                  style={{ stroke: color }}
-                />
-                <text 
-                  x={getX(i)} 
-                  y={getY(val) + (val >= (maxVal + minVal) / 2 ? 16 : -10)} // 上下位置の調整
-                  className={`pitch-sparkline__label ${isNonDiatonic ? 'pitch-sparkline__label--nondiatonic' : ''}`}
-                  textAnchor="middle"
-                  style={{ fill: color, fontWeight: isNonDiatonic ? 'bold' : 'normal' }}
-                >
-                  {degreeStr}
-                </text>
               </g>
             );
           })}
