@@ -41,6 +41,9 @@ export function normalizeChordNotation(chordName) {
   
   // 括弧で囲まれたテンションの括弧を外す (例: C7(b9) -> C7b9, Cm7(-5) -> Cm7b5)
   n = n.replace(/\((.*?)\)/g, '$1');
+
+  // + が単独で使われている場合（例: C+7 -> Caug7 -> C7#5）
+  n = n.replace(/\+(?!5|9|11|13)/g, 'aug');
   
   // ナチュラルテンション（9, 11, 13）の場合は、7を省略する Tonal.js の仕様に合わせる
   // maj, M, △ は大文字小文字区別する（Mはメジャー、mはマイナーのため）
@@ -55,6 +58,24 @@ export function normalizeChordNotation(chordName) {
   n = n.replace(/(?<![#b])79/g, '9');
   n = n.replace(/(?<![#b])711/g, '11');
   n = n.replace(/(?<![#b])713/g, '13');
+
+  // aug の対応: Tonal.jsは aug9 などを解釈できないため 9#5 などに変換
+  n = n.replace(/augmaj9/gi, 'maj9#5');
+  n = n.replace(/augM9/g, 'maj9#5');
+  n = n.replace(/augmaj7/gi, 'maj7#5');
+  n = n.replace(/augM7/g, 'maj7#5');
+  n = n.replace(/aug9/gi, '9#5');
+  n = n.replace(/aug7/gi, '7#5');
+  n = n.replace(/maug/gi, 'm#5');
+  n = n.replace(/aug/gi, '#5'); // 単独の aug も #5 に変換
+  
+  // #5, b5 とテンションの順序を整理 (例: 7#59 -> 9#5)
+  n = n.replace(/7#59/g, '9#5');
+  n = n.replace(/7b59/g, '9b5');
+  n = n.replace(/#59/g, '9#5');
+  n = n.replace(/b59/g, '9b5');
+  n = n.replace(/#57/g, '7#5');
+  n = n.replace(/b57/g, '7b5');
   
   // その他の記号の揺れ
   n = n.replace(/△7/g, 'maj7');

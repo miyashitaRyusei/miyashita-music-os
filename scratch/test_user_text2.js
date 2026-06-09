@@ -14,18 +14,37 @@ function normalizeChordNotation(chordName) {
   // 括弧で囲まれたテンションの括弧を外す
   n = n.replace(/\((.*?)\)/g, '$1');
   
+  // + が単独で使われている場合（例: C+7 -> Caug7 -> C7#5）
+  n = n.replace(/\+(?!5|9|11|13)/g, 'aug');
+  
   // ナチュラルテンション（9, 11, 13）の場合は、7を省略する Tonal.js の仕様に合わせる
-  // maj, M, △ は大文字小文字区別する（Mはメジャー、mはマイナーのため）
   n = n.replace(/(M|maj|Maj|MAJ|△)79/g, 'maj9');
   n = n.replace(/(M|maj|Maj|MAJ|△)711/g, 'maj11');
   n = n.replace(/(M|maj|Maj|MAJ|△)713/g, 'maj13');
   n = n.replace(/m79/g, 'm9');
   n = n.replace(/m711/g, 'm11');
   n = n.replace(/m713/g, 'm13');
-  // 属七
   n = n.replace(/(?<![#b])79/g, '9');
   n = n.replace(/(?<![#b])711/g, '11');
   n = n.replace(/(?<![#b])713/g, '13');
+  
+  // aug の対応: Tonal.jsは aug9 などを解釈できないため 9#5 などに変換
+  n = n.replace(/augmaj9/gi, 'maj9#5');
+  n = n.replace(/augM9/g, 'maj9#5');
+  n = n.replace(/augmaj7/gi, 'maj7#5');
+  n = n.replace(/augM7/g, 'maj7#5');
+  n = n.replace(/aug9/gi, '9#5');
+  n = n.replace(/aug7/gi, '7#5');
+  n = n.replace(/maug/gi, 'm#5');
+  n = n.replace(/aug/gi, '#5');
+  
+  // #5, b5 とテンションの順序を整理 (例: 7#59 -> 9#5)
+  n = n.replace(/7#59/g, '9#5');
+  n = n.replace(/7b59/g, '9b5');
+  n = n.replace(/#59/g, '9#5');
+  n = n.replace(/b59/g, '9b5');
+  n = n.replace(/#57/g, '7#5');
+  n = n.replace(/b57/g, '7b5');
   
   // その他の記号の揺れ
   n = n.replace(/△7/g, 'M7');
@@ -35,7 +54,7 @@ function normalizeChordNotation(chordName) {
   return n;
 }
 
-const testChords = ['BM7(9)', 'C7(b9)', 'Cm7(-5)', 'F#m7(11)', 'G7(13)', 'C△7(9)'];
+const testChords = ['Eaug7(9)', 'Eaug9', 'E+7(9)', 'E7#5(9)', 'CaugM7(9)'];
 
 for (let chord of testChords) {
   const norm = normalizeChordNotation(chord);
