@@ -31,8 +31,6 @@ function PitchPatternItem({ pattern }) {
 
   const [showHistory, setShowHistory] = useState(false);
 
-  const [showHistory, setShowHistory] = useState(false);
-
   const handlePlay = async (e) => {
     e.stopPropagation();
     if (isPlaying) {
@@ -95,10 +93,7 @@ function PitchPatternItem({ pattern }) {
       </div>
 
       <div className="dict-card__visual">
-              </g>
-            );
-          })}
-        </svg>
+        <PitchPatternCanvas degrees={pattern.degrees} id={pattern.id} height={80} />
       </div>
 
       <div className="dict-card__meta" style={{ justifyContent: 'flex-end', gap: '8px' }}>
