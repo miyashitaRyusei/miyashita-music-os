@@ -162,8 +162,12 @@ export async function playCombinedSequence(degrees, timings, onEnd) {
   await initTone();
   
   const now = Tone.now();
-  const bps = 120 / 60; // 120 BPM
+  const measureSeconds = 2.0; // 120BPMの4/4拍子は1小節2秒
   
+  // アウフタクト対策
+  const minTime = Math.min(...timings.map(t => t.normalizedTime), 0);
+  const offset = Math.abs(minTime);
+
   let maxEndTime = 0;
 
   for (let i = 0; i < timings.length; i++) {
@@ -173,10 +177,10 @@ export async function playCombinedSequence(degrees, timings, onEnd) {
 
     const note = DEGREE_TO_NOTE[degree] || 'C4';
     
-    const startTime = timing.start / bps;
-    const durationTime = timing.duration / bps;
+    const startTime = now + (timing.normalizedTime + offset) * measureSeconds;
+    const durationTime = timing.normalizedDuration * measureSeconds;
     
-    melodySynth.triggerAttackRelease(note, durationTime, now + startTime);
+    melodySynth.triggerAttackRelease(note, durationTime, startTime);
     
     if (startTime + durationTime > maxEndTime) {
       maxEndTime = startTime + durationTime;
@@ -187,7 +191,7 @@ export async function playCombinedSequence(degrees, timings, onEnd) {
     currentTimeoutId = setTimeout(() => {
       onEnd();
       currentTimeoutId = null;
-    }, maxEndTime * 1000 + 200);
+    }, (maxEndTime - now) * 1000 + 200);
   }
 }
 
