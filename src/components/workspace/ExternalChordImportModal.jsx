@@ -3,37 +3,41 @@ import { Chord } from '@tonaljs/tonal';
 import { normalizeChordNotation } from '../../utils/chordUtils';
 import useAppStore from '../../store/useAppStore';
 
-function isLikelyChord(token) {
-  if (!token) return false;
-  // 漢字・ひらがな・カタカナが含まれていたら歌詞と判定して弾く
-  if (/[一-龠ぁ-んァ-ヶ]/.test(token)) return false;
-
-  const normalizedToken = normalizeChordNotation(token);
-
-  // スラッシュコードの判定 (C/B, C/E, ConE など)
-  const slashMatch = normalizedToken.match(/^([A-G][#b]?[a-zA-Z0-9()]*)(?:\/|on)([A-G][#b]?)$/i);
-  if (slashMatch) {
-    const baseChord = slashMatch[1];
-    return !Chord.get(baseChord).empty;
-  }
-
-  // スラッシュがない通常のコード
-  return !Chord.get(normalizedToken).empty;
-}
-
 export default function ExternalChordImportModal({ onClose }) {
   const [inputText, setInputText] = useState('');
   const [chordsPerMeasure, setChordsPerMeasure] = useState(2);
   const setChordInput = useAppStore((s) => s.setChordInput);
 
   const handleImport = () => {
-    // 1. 全角スペースや改行を含めて空白文字で分割 (JSの \s は全角スペースも含む)
-    const tokens = inputText.split(/\s+/);
+    // 1. コードと思われる文字列を正規表現で全抽出
+    // A-Gから始まり、#bが続き、さらにコードネームに使われるアルファベット・数字・記号が続く文字列
+    const regex = /[A-G][#b]?(?:M|m|maj|dim|aug|sus|add|[0-9]|\+|-|#|b|\(|\)|,)*/g;
+    const slashRegex = new RegExp(regex.source + '(?:(?:\\/|on)[A-G][#b]?)?', 'g');
+    const rawMatches = inputText.match(slashRegex) || [];
 
-    // 2. コードと思われるものだけを抽出し、表記を正規化
-    const extractedChords = tokens
-      .map(t => normalizeChordNotation(t))
-      .filter(isLikelyChord);
+    // 2. 抽出した文字列を一つずつ検証し、正規化
+    const extractedChords = [];
+    for (let match of rawMatches) {
+      // 連続するハイフンが末尾にくっついた場合（例: F#m----）を取り除く
+      let cleanMatch = match.replace(/-+$/g, '');
+      
+      const normalized = normalizeChordNotation(cleanMatch);
+      if (!normalized) continue;
+
+      // 誤検知（英単語など）を防ぐため、Tonal.js で基本解析できるか検証
+      const slashMatch = normalized.match(/^([A-G][#b]?[a-zA-Z0-9]*)(?:\/|on)([A-G][#b]?)$/i);
+      let isValid;
+      
+      if (slashMatch) {
+         isValid = !Chord.get(slashMatch[1]).empty;
+      } else {
+         isValid = !Chord.get(normalized).empty;
+      }
+      
+      if (isValid) {
+        extractedChords.push(normalized);
+      }
+    }
 
     if (extractedChords.length === 0) {
       alert('コードが1つも見つかりませんでした。テキストを確認してください。');
@@ -129,8 +133,24 @@ export default function ExternalChordImportModal({ onClose }) {
             </strong>
             <div style={{ color: 'var(--accent-blue)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
               {inputText ? (() => {
-                const tokens = inputText.split(/\s+/);
-                const chords = tokens.filter(isLikelyChord);
+                const regex = /[A-G][#b]?(?:M|m|maj|dim|aug|sus|add|[0-9]|\+|-|#|b|\(|\)|,)*/g;
+                const slashRegex = new RegExp(regex.source + '(?:(?:\\/|on)[A-G][#b]?)?', 'g');
+                const rawMatches = inputText.match(slashRegex) || [];
+                const chords = [];
+                for (let match of rawMatches) {
+                  let cleanMatch = match.replace(/-+$/g, '');
+                  const normalized = normalizeChordNotation(cleanMatch);
+                  if (!normalized) continue;
+                  const slashMatch = normalized.match(/^([A-G][#b]?[a-zA-Z0-9]*)(?:\/|on)([A-G][#b]?)$/i);
+                  let isValid;
+                  if (slashMatch) {
+                    isValid = !Chord.get(slashMatch[1]).empty;
+                  } else {
+                    isValid = !Chord.get(normalized).empty;
+                  }
+                  if (isValid) chords.push(normalized);
+                }
+
                 if (chords.length === 0) return 'コードが見つかりません';
                 let preview = '';
                 for (let i = 0; i < Math.min(chords.length, 20); i++) {
