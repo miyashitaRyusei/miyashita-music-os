@@ -11,9 +11,10 @@ export default function ExternalChordImportModal({ onClose }) {
   const handleImport = () => {
     // 1. コードと思われる文字列を正規表現で全抽出
     // A-Gから始まり、#bが続き、さらにコードネームに使われるアルファベット・数字・記号が続く文字列
-    const regex = /[A-G][#b]?(?:M|m|maj|dim|aug|sus|add|[0-9]|\+|-|#|b|\(|\)|,)*/g;
+    // 全角の ♯ ♭ にも対応
+    const regex = /[A-G][#b♯♭]?(?:M|m|maj|dim|aug|sus|add|[0-9]|\+|-|#|b|♯|♭|\(|\)|,)*/g;
     // 後ろにアルファベットが続く場合（Babyなど通常の英単語）は誤検知を防ぐため除外
-    const slashRegex = new RegExp(regex.source + '(?:(?:\\/|on)[A-G][#b]?)?(?![a-zA-Z])', 'g');
+    const slashRegex = new RegExp(regex.source + '(?:(?:\\/|on)[A-G][#b♯♭]?)?(?![a-zA-Z])', 'g');
     const rawMatches = inputText.match(slashRegex) || [];
 
     // 2. 抽出した文字列を一つずつ検証し、正規化
@@ -134,8 +135,8 @@ export default function ExternalChordImportModal({ onClose }) {
             </strong>
             <div style={{ color: 'var(--accent-blue)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
               {inputText ? (() => {
-                const regex = /[A-G][#b]?(?:M|m|maj|dim|aug|sus|add|[0-9]|\+|-|#|b|\(|\)|,)*/g;
-                const slashRegex = new RegExp(regex.source + '(?:(?:\\/|on)[A-G][#b]?)?(?![a-zA-Z])', 'g');
+                const regex = /[A-G][#b♯♭]?(?:M|m|maj|dim|aug|sus|add|[0-9]|\+|-|#|b|♯|♭|\(|\)|,)*/g;
+                const slashRegex = new RegExp(regex.source + '(?:(?:\\/|on)[A-G][#b♯♭]?)?(?![a-zA-Z])', 'g');
                 const rawMatches = inputText.match(slashRegex) || [];
                 const chords = [];
                 for (let match of rawMatches) {
