@@ -51,7 +51,7 @@ export default function PitchPatternCanvas({ degrees = [], height = 80 }) {
       <line x1="0" y1={SVG_HEIGHT/2} x2={SVG_WIDTH} y2={SVG_HEIGHT/2} className="pitch-sparkline__grid" stroke="var(--border-default)" strokeDasharray="4 4" />
 
       {/* 折れ線 */}
-      <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3, fill: 'none', stroke: 'var(--accent-blue)' }} />
+      <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3, fill: 'none', stroke: 'var(--text-placeholder)' }} />
       
       {/* プロット点と音名ラベル */}
       {values.map((val, i) => {
