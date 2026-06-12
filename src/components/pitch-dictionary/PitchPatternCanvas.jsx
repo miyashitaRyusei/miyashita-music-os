@@ -51,13 +51,13 @@ export default function PitchPatternCanvas({ degrees = [], height = 80 }) {
       <line x1="0" y1={SVG_HEIGHT/2} x2={SVG_WIDTH} y2={SVG_HEIGHT/2} className="pitch-sparkline__grid" stroke="var(--border-default)" strokeDasharray="4 4" />
 
       {/* 折れ線 */}
-      <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3, fill: 'none', stroke: 'var(--accent-primary)' }} />
+      <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3, fill: 'none', stroke: 'var(--accent-blue)' }} />
       
       {/* プロット点と音名ラベル */}
       {values.map((val, i) => {
         const degreeStr = degrees[i] || '';
         const isNonDiatonic = degreeStr.includes('#') || degreeStr.includes('b');
-        const color = isNonDiatonic ? 'var(--accent-orange)' : 'var(--accent-primary)';
+        const color = isNonDiatonic ? 'var(--accent-orange)' : 'var(--accent-blue)';
         
         return (
           <g key={i}>
