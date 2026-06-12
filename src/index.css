@@ -1134,13 +1134,84 @@ ul, ol {
 /* ============================================
    Responsive
    ============================================ */
+.bottom-nav {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .grid-2, .grid-3 {
     grid-template-columns: 1fr;
   }
 
   .page {
-    padding: var(--spacing-xl) var(--spacing-lg);
+    padding: var(--spacing-md);
+  }
+
+  .mobile-menu-btn {
+    display: none; /* ボトムナビのメニューを使うため非表示 */
+  }
+
+  .main-content {
+    padding-bottom: 80px; /* ボトムナビゲーション分の余白 */
+  }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-default);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 10px;
+    gap: 4px;
+    flex: 1;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  .bottom-nav__item--active {
+    color: var(--accent-blue);
+  }
+
+  .bottom-nav__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* 辞書カードのスマホ向けタップ領域拡大・整理 */
+  .dict-card {
+    padding: var(--spacing-md);
+  }
+
+  .dict-card__play-btn {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  
+  .dict-card__play-btn svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .dict-card__meta {
+    flex-wrap: wrap;
+    margin-top: 8px;
   }
 }
 
