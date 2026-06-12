@@ -1,5 +1,3 @@
-import React from 'react';
-
 // 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
 function degreeToValue(degreeStr) {
   const baseMap = {
@@ -20,7 +18,7 @@ function degreeToValue(degreeStr) {
   return val + (upCount * 12) - (downCount * 12);
 }
 
-export default function PitchPatternCanvas({ degrees = [], id = 'pitch', height = 80 }) {
+export default function PitchPatternCanvas({ degrees = [], height = 80 }) {
   const values = degrees.map(degreeToValue);
   const minVal = values.length > 0 ? Math.min(...values) : 0;
   const maxVal = values.length > 0 ? Math.max(...values) : 0;
@@ -46,27 +44,11 @@ export default function PitchPatternCanvas({ degrees = [], id = 'pitch', height 
   };
 
   const points = values.map((val, i) => `${getX(i)},${getY(val)}`).join(' ');
-  // 下に塗りつぶすためのポリゴン座標（線の終点から下へ、始点の下へ、そして始点へ戻る）
-  const polygonPoints = values.length > 0 
-    ? `${points} ${getX(values.length - 1)},${SVG_HEIGHT} ${getX(0)},${SVG_HEIGHT}` 
-    : '';
 
   return (
     <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="pitch-sparkline" style={{ width: '100%', height: `${height}px`, display: 'block' }}>
-      <defs>
-        <linearGradient id={`grad-${encodeURIComponent(id).replace(/%/g, '_')}`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
       {/* 背景のグリッド線（中央） */}
       <line x1="0" y1={SVG_HEIGHT/2} x2={SVG_WIDTH} y2={SVG_HEIGHT/2} className="pitch-sparkline__grid" stroke="var(--border-default)" strokeDasharray="4 4" />
-      
-      {/* エリアチャート（塗りつぶし） */}
-      {polygonPoints && (
-        <polygon points={polygonPoints} fill={`url(#grad-${encodeURIComponent(id).replace(/%/g, '_')})`} />
-      )}
 
       {/* 折れ線 */}
       <polyline points={points} className="pitch-sparkline__line" style={{ strokeWidth: 3, fill: 'none', stroke: 'var(--accent-primary)' }} />
