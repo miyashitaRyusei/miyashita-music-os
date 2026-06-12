@@ -57,7 +57,7 @@ export default function PitchPatternCanvas({ degrees = [], height = 80 }) {
       {values.map((val, i) => {
         const degreeStr = degrees[i] || '';
         const isNonDiatonic = degreeStr.includes('#') || degreeStr.includes('b');
-        const pointColor = isNonDiatonic ? 'var(--accent-orange)' : 'var(--accent-blue)';
+        const pointColor = isNonDiatonic ? 'var(--accent-orange)' : '#0ea5e9';
         const textColor = isNonDiatonic ? 'var(--accent-orange)' : 'var(--text-secondary)';
         
         return (
