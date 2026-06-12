@@ -57,20 +57,21 @@ export default function PitchPatternCanvas({ degrees = [], height = 80 }) {
       {values.map((val, i) => {
         const degreeStr = degrees[i] || '';
         const isNonDiatonic = degreeStr.includes('#') || degreeStr.includes('b');
-        const color = isNonDiatonic ? 'var(--accent-orange)' : 'var(--accent-blue)';
+        const pointColor = isNonDiatonic ? 'var(--accent-orange)' : 'var(--accent-blue)';
+        const textColor = isNonDiatonic ? 'var(--accent-orange)' : 'var(--text-secondary)';
         
         return (
           <g key={i}>
             <circle cx={getX(i)} cy={getY(val)} r="4" 
               className="pitch-sparkline__point" 
-              style={{ stroke: color, fill: 'var(--bg-primary)', strokeWidth: 2 }}
+              style={{ stroke: pointColor, fill: 'var(--bg-primary)', strokeWidth: 2 }}
             />
             <text 
               x={getX(i)} 
               y={getY(val) + (val >= (maxVal + minVal) / 2 ? 16 : -10)} // 上下位置の調整
               className={`pitch-sparkline__label ${isNonDiatonic ? 'pitch-sparkline__label--nondiatonic' : ''}`}
               textAnchor="middle"
-              style={{ fill: color, fontWeight: isNonDiatonic ? 'bold' : 'normal', fontSize: '12px', userSelect: 'none' }}
+              style={{ fill: textColor, fontWeight: isNonDiatonic ? 'bold' : 'normal', fontSize: '12px', userSelect: 'none' }}
             >
               {degreeStr}
             </text>
