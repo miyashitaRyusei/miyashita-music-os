@@ -11,6 +11,7 @@ export default function EarTraining() {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [bpm, setBpm] = useState(85);
   
   // Tone.jsのSynthとTransport参照を保持
   const synthRef = useRef(null);
@@ -106,7 +107,7 @@ export default function EarTraining() {
     }
 
     setIsPlaying(true);
-    Tone.Transport.bpm.value = 85;
+    Tone.Transport.bpm.value = bpm;
 
     if (!currentQuestion) return;
     
@@ -127,6 +128,12 @@ export default function EarTraining() {
   const toggleReveal = () => {
     setIsRevealed(true);
   };
+
+  useEffect(() => {
+    if (isPlaying) {
+      Tone.Transport.bpm.value = bpm;
+    }
+  }, [bpm, isPlaying]);
 
   const degreeToChordC = (degree) => {
     const parts = degree.split('/');
@@ -189,8 +196,23 @@ export default function EarTraining() {
           問題 {currentPoolIndex + 1} / {currentPool.length} {currentQuestion && `(ID: ${currentQuestion.id})`}
         </div>
 
+        {/* BPMスライダー */}
+        <div className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', width: '40px', fontWeight: 'bold' }}>SPEED</span>
+          <input 
+            type="range" 
+            min="40" 
+            max="160" 
+            step="1"
+            value={bpm} 
+            onChange={(e) => setBpm(parseInt(e.target.value, 10))}
+            style={{ flex: 1, accentColor: 'var(--accent-blue)' }} 
+          />
+          <span style={{ fontSize: '13px', color: 'var(--text-primary)', width: '32px', textAlign: 'right', fontWeight: 'bold' }}>{bpm}</span>
+        </div>
+
         {/* メイン再生エリア */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', marginTop: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', marginTop: '8px' }}>
           <button
             onClick={startSequence}
             style={{
