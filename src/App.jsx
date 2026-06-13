@@ -9,6 +9,7 @@ import ChordDictionary from './pages/ChordDictionary';
 import MelodyMaker from './pages/MelodyMaker';
 import MelodyChordDictionary from './pages/MelodyChordDictionary';
 import SongRegistry from './pages/SongRegistry';
+import EarTraining from './pages/EarTraining';
 import MyLibrary from './pages/MyLibrary';
 import LoadingOverlay from './components/ui/LoadingOverlay';
 import useAppStore from './store/useAppStore';
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/chord-dictionary" element={<ChordDictionary />} />
           <Route path="/melody-maker" element={<MelodyMaker />} />
           <Route path="/melody-chord-dictionary" element={<MelodyChordDictionary />} />
+          <Route path="/ear-training" element={<EarTraining />} />
           <Route path="/my-library" element={<MyLibrary />} />
         </Route>
       </Routes>

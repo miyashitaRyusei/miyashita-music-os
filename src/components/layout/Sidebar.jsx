@@ -8,7 +8,8 @@ import {
   CubeTransparentIcon, 
   SparklesIcon, 
   FolderIcon,
-  PuzzlePieceIcon
+  PuzzlePieceIcon,
+  PlayCircleIcon
 } from '@heroicons/react/24/outline';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { path: '/chord-dictionary', label: 'コード辞書', icon: <CubeTransparentIcon /> },
   { path: '/melody-chord-dictionary', label: 'メロディ×コード', icon: <SparklesIcon /> },
   { path: '/melody-maker', label: 'メロディメーカー', icon: <PuzzlePieceIcon /> },
+  { path: '/ear-training', label: 'イヤートレーニング', icon: <PlayCircleIcon /> },
   { path: '/my-library', label: 'マイライブラリ', icon: <FolderIcon /> },
 ];
 
