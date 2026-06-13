@@ -1,4 +1,4 @@
-import { MusicalNoteIcon, Bars3BottomLeftIcon, PlayIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { MusicalNoteIcon, Bars3BottomLeftIcon, PlayIcon, MapPinIcon, SparklesIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 
 const ALL_PITCHES = ['ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ'];
 
@@ -107,6 +107,63 @@ export default function PitchAdvancedFilter({ advancedFilters, setAdvancedFilter
       </div>
 
       <div className="form-group">
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <SparklesIcon style={{ width: '16px', height: '16px' }} />
+          ノンダイアトニックを含む
+        </label>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input 
+              type="radio" 
+              name="pitch-nondiatonic"
+              value="" 
+              checked={advancedFilters.hasNonDiatonic === '' || !advancedFilters.hasNonDiatonic} 
+              onChange={() => handleChange('hasNonDiatonic', '')}
+            />
+            指定なし
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input 
+              type="radio" 
+              name="pitch-nondiatonic"
+              value="yes" 
+              checked={advancedFilters.hasNonDiatonic === 'yes'} 
+              onChange={() => handleChange('hasNonDiatonic', 'yes')}
+            />
+            含む
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input 
+              type="radio" 
+              name="pitch-nondiatonic"
+              value="no" 
+              checked={advancedFilters.hasNonDiatonic === 'no'} 
+              onChange={() => handleChange('hasNonDiatonic', 'no')}
+            />
+            含まない
+          </label>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowTrendingUpIcon style={{ width: '16px', height: '16px' }} />
+          跳躍幅（ジャンプ）
+        </label>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input
+            type="number"
+            className="input"
+            style={{ width: '100px' }}
+            placeholder="例: 3"
+            value={advancedFilters.minLeap || ''}
+            onChange={(e) => handleChange('minLeap', e.target.value)}
+          />
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>半音以上のジャンプを含む</span>
+        </div>
+      </div>
+
+      <div className="form-group">
         <button 
           className="btn btn--secondary" 
           style={{ width: '100%', marginTop: '16px' }}
@@ -117,7 +174,8 @@ export default function PitchAdvancedFilter({ advancedFilters, setAdvancedFilter
             maxNotes: '',
             startNote: '',
             endNote: '',
-            maxInterval: ''
+            hasNonDiatonic: '',
+            minLeap: ''
           }))}
         >
           クリア

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { hasNonDiatonic } from '../utils/chordUtils';
+import { degreeToValue } from '../utils/pitchUtils';
 
 export function useDictionaryFilter(items, dictionaryType = 'generic') {
   const [filters, setFilters] = useState({
@@ -33,6 +34,7 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
     startChord: '',
     endChord: '',
     hasNonDiatonic: '', // 'yes', 'no', ''
+    minLeap: '', // ピッチ用跳躍幅
   });
 
   const filteredItems = useMemo(() => {
@@ -105,9 +107,26 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
       if (advancedFilters.endNote) {
         result = result.filter(item => item.degrees && item.degrees[item.degrees.length - 1] === advancedFilters.endNote);
       }
-      if (advancedFilters.maxInterval) {
-        // maxInterval以上の跳躍を含むか
-        // degreeToValue関数が必要ですが、簡易的にインデックス差などでやるか、現状はスキップまたは後で実装
+      if (advancedFilters.hasNonDiatonic === 'yes') {
+        result = result.filter(item => item.degrees && item.degrees.some(d => d.includes('#') || d.includes('b') || d.includes('♯') || d.includes('♭')));
+      } else if (advancedFilters.hasNonDiatonic === 'no') {
+        result = result.filter(item => item.degrees && !item.degrees.some(d => d.includes('#') || d.includes('b') || d.includes('♯') || d.includes('♭')));
+      }
+      if (advancedFilters.minLeap) {
+        const leapTarget = parseInt(advancedFilters.minLeap, 10);
+        result = result.filter(item => {
+          if (!item.degrees || item.degrees.length < 2) return false;
+          let hasLeap = false;
+          for (let i = 0; i < item.degrees.length - 1; i++) {
+            const val1 = degreeToValue(item.degrees[i]);
+            const val2 = degreeToValue(item.degrees[i+1]);
+            if (Math.abs(val1 - val2) >= leapTarget) {
+              hasLeap = true;
+              break;
+            }
+          }
+          return hasLeap;
+        });
       }
     } else if (dictionaryType === 'rhythm') {
       if (advancedFilters.minNotes) {

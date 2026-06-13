@@ -23,7 +23,22 @@ export default function MelodyMaker() {
   
   // 新機能: ベースの音数フィルタリングとテンポ調整
   const [baseNoteCountFilter, setBaseNoteCountFilter] = useState('');
+  const [baseTagFilter, setBaseTagFilter] = useState('');
   const [tempo, setTempo] = useState(120);
+
+  // 利用可能なすべてのタグを抽出
+  const availableTags = useMemo(() => {
+    const tags = new Set();
+    const addTags = (p) => {
+      if (p.source) tags.add(p.source);
+      if (p.preference) tags.add(p.preference);
+      if (p.section) tags.add(p.section);
+      if (Array.isArray(p.sections)) p.sections.forEach(s => tags.add(s));
+    };
+    pitchPatterns.forEach(addTags);
+    rhythmPatterns.forEach(addTags);
+    return [...tags].filter(t => t);
+  }, [pitchPatterns, rhythmPatterns]);
 
   // 利用可能な音数のリスト（ピッチとリズム両方に存在する音数のみ）
   const availableNoteCounts = useMemo(() => {
@@ -45,8 +60,18 @@ export default function MelodyMaker() {
         return count === targetCount;
       });
     }
+    
+    if (baseTagFilter !== '') {
+      patterns = patterns.filter(p => {
+        const hasSource = p.source === baseTagFilter;
+        const hasPref = p.preference === baseTagFilter;
+        const hasSection = p.section === baseTagFilter || (Array.isArray(p.sections) && p.sections.includes(baseTagFilter));
+        return hasSource || hasPref || hasSection;
+      });
+    }
+    
     return patterns;
-  }, [baseType, pitchPatterns, rhythmPatterns, baseNoteCountFilter]);
+  }, [baseType, pitchPatterns, rhythmPatterns, baseNoteCountFilter, baseTagFilter]);
 
   // 選択されたベースパターン
   const selectedBase = useMemo(() => {
@@ -134,9 +159,17 @@ export default function MelodyMaker() {
       targetCount = availableNoteCounts[Math.floor(Math.random() * availableNoteCounts.length)];
     }
     
-    // 選ばれた音数に一致するピッチとリズムのリストを取得
-    const availablePitches = pitchPatterns.filter(p => (p.degrees || []).length === targetCount);
-    const availableRhythms = rhythmPatterns.filter(r => (r.timings || []).length === targetCount);
+    // 選ばれた音数に一致するピッチとリズムのリストを取得（タグフィルタも考慮）
+    const matchTag = (p) => {
+      if (!baseTagFilter) return true;
+      const hasSource = p.source === baseTagFilter;
+      const hasPref = p.preference === baseTagFilter;
+      const hasSection = p.section === baseTagFilter || (Array.isArray(p.sections) && p.sections.includes(baseTagFilter));
+      return hasSource || hasPref || hasSection;
+    };
+
+    const availablePitches = pitchPatterns.filter(p => (p.degrees || []).length === targetCount && matchTag(p));
+    const availableRhythms = rhythmPatterns.filter(r => (r.timings || []).length === targetCount && matchTag(r));
     
     if (availablePitches.length === 0 || availableRhythms.length === 0) {
       alert('その音数の組み合わせが見つかりませんでした。');
@@ -283,6 +316,20 @@ export default function MelodyMaker() {
                 <option value="">すべて表示</option>
                 {availableNoteCounts.map(count => (
                   <option key={count} value={count}>{count}音</option>
+                ))}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>タグフィルタ:</span>
+              <select 
+                value={baseTagFilter} 
+                onChange={(e) => setBaseTagFilter(e.target.value)}
+                style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-default)', background: 'var(--bg-color)', color: 'var(--text-primary)', flex: 1 }}
+              >
+                <option value="">すべて表示</option>
+                {availableTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
                 ))}
               </select>
             </div>
