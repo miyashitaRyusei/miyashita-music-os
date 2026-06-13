@@ -57,16 +57,37 @@ export function stopAudio() {
   }
 }
 
-const DEGREE_TO_NOTE = {
-  // 英語表記
-  'Do↓': 'C3', 'Re↓': 'D3', 'Mi↓': 'E3', 'Fa↓': 'F3', 'Sol↓': 'G3', 'La↓': 'A3', 'Si↓': 'B3',
-  'Do': 'C4', 'Re': 'D4', 'Mi': 'E4', 'Fa': 'F4', 'Sol': 'G4', 'La': 'A4', 'Si': 'B4',
-  'Do↑': 'C5', 'Re↑': 'D5', 'Mi↑': 'E5', 'Fa↑': 'F5', 'Sol↑': 'G5', 'La↑': 'A5', 'Si↑': 'B5',
-  // カタカナ表記
-  'ド↓': 'C3', 'ド#↓': 'C#3', 'レ↓': 'D3', 'レ#↓': 'D#3', 'ミ↓': 'E3', 'ファ↓': 'F3', 'ファ#↓': 'F#3', 'ソ↓': 'G3', 'ソ#↓': 'G#3', 'ラ↓': 'A3', 'ラ#↓': 'A#3', 'シ↓': 'B3',
-  'ド': 'C4', 'ド#': 'C#4', 'レ': 'D4', 'レ#': 'D#4', 'ミ': 'E4', 'ファ': 'F4', 'ファ#': 'F#4', 'ソ': 'G4', 'ソ#': 'G#4', 'ラ': 'A4', 'ラ#': 'A#4', 'シ': 'B4',
-  'ド↑': 'C5', 'ド#↑': 'C#5', 'レ↑': 'D5', 'レ#↑': 'D#5', 'ミ↑': 'E5', 'ファ↑': 'F5', 'ファ#↑': 'F#5', 'ソ↑': 'G5', 'ソ#↑': 'G#5', 'ラ↑': 'A5', 'ラ#↑': 'A#5', 'シ↑': 'B5',
-};
+// 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
+function degreeToValue(degreeStr) {
+  if (!degreeStr) return 0;
+  
+  const baseMap = {
+    'ド': 0, 'ド#': 1, 'レ': 2, 'レ#': 3, 'ミ': 4, 'ファ': 5, 'ファ#': 6,
+    'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11,
+    'Do': 0, 'Do#': 1, 'Re': 2, 'Re#': 3, 'Mi': 4, 'Fa': 5, 'Fa#': 6,
+    'Sol': 7, 'Sol#': 8, 'La': 9, 'La#': 10, 'Si': 11
+  };
+  
+  // 空白の除去と全角/半角の正規化
+  let normalizedStr = degreeStr.trim().replace(/♯/g, '#').replace(/♭/g, 'b');
+  
+  // 階名部分の抽出（矢印などを除外）
+  let name = normalizedStr.replace(/[↑↓⬆⬇⇧⇩]/g, '');
+  let val = baseMap[name] !== undefined ? baseMap[name] : 0;
+  
+  // オクターブシフトの計算
+  const upCount = (normalizedStr.match(/[↑⬆⇧]/g) || []).length;
+  const downCount = (normalizedStr.match(/[↓⬇⇩]/g) || []).length;
+  
+  return val + (upCount * 12) - (downCount * 12);
+}
+
+function degreeToNoteName(degreeStr) {
+  const val = degreeToValue(degreeStr);
+  // C4 を基準(0)とする。C4は MIDI ノート番号 60
+  const midiNote = 60 + val;
+  return Tone.Frequency(midiNote, "midi").toNote();
+}
 
 /**
  * ピッチパターンの再生（リズムを持たず、全て8分音符で再生）
@@ -79,7 +100,7 @@ export async function playPitchSequence(degrees, onEnd) {
   const stepTime = 0.25; // 8分音符相当（120BPM）
   
   degrees.forEach((degree, i) => {
-    const note = DEGREE_TO_NOTE[degree] || 'C4';
+    const note = degreeToNoteName(degree);
     // 発音タイミングをスケジュール
     synth.triggerAttackRelease(note, "8n", now + i * stepTime);
   });
@@ -197,7 +218,7 @@ export async function playCombinedSequence(degrees, timings, bpm = 120, onEnd) {
     const degree = degrees[i];
     if (!degree) continue; // 音数が足りない場合は無視
 
-    const note = DEGREE_TO_NOTE[degree] || 'C4';
+    const note = degreeToNoteName(degree);
     
     const startTime = now + (timing.normalizedTime + offset) * measureSeconds;
     const durationTime = timing.normalizedDuration * measureSeconds;
@@ -339,7 +360,7 @@ export async function playMelodyAndChord(melodyDegree, chordName, onEnd) {
   const now = Tone.now();
   
   // メロディの再生（1オクターブ上で鳴らすと抜けが良い）
-  const melodyNote = DEGREE_TO_NOTE[melodyDegree + '↑'] || DEGREE_TO_NOTE[melodyDegree] || 'C5';
+  const melodyNote = degreeToNoteName(melodyDegree + '↑');
   melodySynth.triggerAttackRelease(melodyNote, "2n", now);
   
   // コードの再生
