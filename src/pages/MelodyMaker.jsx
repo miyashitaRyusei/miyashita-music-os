@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import useAppStore from '../store/useAppStore';
 import { playCombinedSequence, stopAudio } from '../utils/audioPlayer';
-import { PlayIcon, BookmarkIcon, TrashIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
+import { PlayIcon, BookmarkIcon, TrashIcon, PuzzlePieceIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { PlayIcon as PlayIconSolid, StopIcon as StopIconSolid } from '@heroicons/react/24/solid';
 import RhythmPatternCanvas from '../components/rhythm-dictionary/RhythmPatternCanvas';
 import PitchPatternCanvas from '../components/pitch-dictionary/PitchPatternCanvas';
@@ -24,6 +24,16 @@ export default function MelodyMaker() {
   // 新機能: ベースの音数フィルタリングとテンポ調整
   const [baseNoteCountFilter, setBaseNoteCountFilter] = useState('');
   const [tempo, setTempo] = useState(120);
+
+  // 利用可能な音数のリスト（ピッチとリズム両方に存在する音数のみ）
+  const availableNoteCounts = useMemo(() => {
+    const pitchCounts = new Set(pitchPatterns.map(p => (p.degrees || []).length).filter(c => c > 0));
+    const rhythmCounts = new Set(rhythmPatterns.map(r => (r.timings || []).length).filter(c => c > 0));
+    
+    // 両方に存在する音数だけを抽出
+    const commonCounts = [...pitchCounts].filter(c => rhythmCounts.has(c));
+    return commonCounts.sort((a, b) => a - b);
+  }, [pitchPatterns, rhythmPatterns]);
 
   // ベースパターンのリスト（音数でフィルタリング対応）
   const basePatterns = useMemo(() => {
@@ -109,6 +119,52 @@ export default function MelodyMaker() {
     });
   };
 
+  const handleRandomGenerate = () => {
+    stopAudio();
+    setIsPlaying(false);
+    
+    // フィルターが空なら共通の音数からランダムに1つ選ぶ、指定されていればそれを使う
+    let targetCount = baseNoteCountFilter ? parseInt(baseNoteCountFilter, 10) : null;
+    
+    if (!targetCount) {
+      if (availableNoteCounts.length === 0) {
+        alert('組み合わせ可能なパターンがありません！辞書にデータを追加してください。');
+        return;
+      }
+      targetCount = availableNoteCounts[Math.floor(Math.random() * availableNoteCounts.length)];
+    }
+    
+    // 選ばれた音数に一致するピッチとリズムのリストを取得
+    const availablePitches = pitchPatterns.filter(p => (p.degrees || []).length === targetCount);
+    const availableRhythms = rhythmPatterns.filter(r => (r.timings || []).length === targetCount);
+    
+    if (availablePitches.length === 0 || availableRhythms.length === 0) {
+      alert('その音数の組み合わせが見つかりませんでした。');
+      return;
+    }
+    
+    // ランダムに1つずつ選択
+    const randomPitch = availablePitches[Math.floor(Math.random() * availablePitches.length)];
+    const randomRhythm = availableRhythms[Math.floor(Math.random() * availableRhythms.length)];
+    
+    // baseType に合わせて ID をセット
+    if (baseType === 'pitch') {
+      setSelectedBaseId(randomPitch.id);
+      setSelectedTargetId(randomRhythm.id);
+    } else {
+      setSelectedBaseId(randomRhythm.id);
+      setSelectedTargetId(randomPitch.id);
+    }
+    
+    // UIの更新を待ってから再生
+    setTimeout(async () => {
+      setIsPlaying(true);
+      await playCombinedSequence(randomPitch.degrees, randomRhythm.timings, tempo, () => {
+        setIsPlaying(false);
+      });
+    }, 100);
+  };
+
   const handleSave = () => {
     if (!selectedBase || !selectedTarget) return;
     const pitchId = baseType === 'pitch' ? selectedBase.id : selectedTarget.id;
@@ -166,9 +222,31 @@ export default function MelodyMaker() {
 
   return (
     <div className="page-container" style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box' }}>
-      <header className="page-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <PuzzlePieceIcon style={{ width: '28px', height: '28px', color: 'var(--accent-purple)' }} />
-        <h1 style={{ margin: 0 }}>メロディメーカー</h1>
+      <header className="page-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <PuzzlePieceIcon style={{ width: '28px', height: '28px', color: 'var(--accent-purple)' }} />
+          <h1 style={{ margin: 0 }}>メロディメーカー</h1>
+        </div>
+        
+        <button 
+          className="btn" 
+          onClick={handleRandomGenerate}
+          style={{ 
+            background: 'var(--accent-purple)', 
+            color: 'white', 
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 20px',
+            borderRadius: '24px',
+            boxShadow: '0 2px 8px rgba(105, 64, 165, 0.25)',
+            fontWeight: '600'
+          }}
+        >
+          <SparklesIcon style={{ width: '20px', height: '20px' }} />
+          <span>おまかせ生成</span>
+        </button>
       </header>
 
       <div style={{ display: 'flex', gap: '24px', flex: 1, overflow: 'hidden' }}>
@@ -203,8 +281,8 @@ export default function MelodyMaker() {
                 style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-default)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
               >
                 <option value="">すべて表示</option>
-                {[...Array(16)].map((_, i) => (
-                  <option key={i+1} value={i+1}>{i+1}音</option>
+                {availableNoteCounts.map(count => (
+                  <option key={count} value={count}>{count}音</option>
                 ))}
               </select>
             </div>
