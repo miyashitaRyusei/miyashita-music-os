@@ -128,6 +128,36 @@ export default function EarTraining() {
     setIsRevealed(true);
   };
 
+  const degreeToChordC = (degree) => {
+    const parts = degree.split('/');
+    
+    const mapRomanToNote = (roman) => {
+      const map = {
+        'bVII': 'Bb', 'bVI': 'Ab', 'bIII': 'Eb', 'bII': 'Db', 'bV': 'Gb',
+        '#VII': 'B#', '#VI': 'A#', '#IV': 'F#', '#II': 'D#', '#I': 'C#',
+        'VII': 'B', 'VI': 'A', 'IV': 'F', 'III': 'E', 'II': 'D', 'V': 'G', 'I': 'C'
+      };
+      for (const key of Object.keys(map)) {
+        if (roman.startsWith(key)) {
+          return { note: map[key], rest: roman.slice(key.length) };
+        }
+      }
+      return { note: roman, rest: '' };
+    };
+
+    const parseChord = (romanChord) => {
+      const { note, rest } = mapRomanToNote(romanChord);
+      return note + rest;
+    };
+
+    const parsedChord = parseChord(parts[0]);
+    if (parts.length > 1) {
+      const { note: bassNote } = mapRomanToNote(parts[1]);
+      return `${parsedChord}/${bassNote}`;
+    }
+    return parsedChord;
+  };
+
   return (
     <div className="page animate-fade-in" style={{ paddingBottom: '100px' }}>
       <div className="page__header" style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -193,7 +223,7 @@ export default function EarTraining() {
                   wordBreak: 'break-word'
                 }}>
                   {isRevealed 
-                    ? currentQuestion.degrees.join(' - ') 
+                    ? currentQuestion.degrees.map(degreeToChordC).join(' - ') 
                     : currentQuestion.degrees.map(() => '??').join(' - ')}
                 </div>
 
