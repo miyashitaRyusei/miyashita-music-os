@@ -1,19 +1,24 @@
 // 階名から相対的なピッチ値を計算するヘルパー（Cメジャー基準）
 function degreeToValue(degreeStr) {
+  if (!degreeStr) return 0;
+  
   const baseMap = {
     'ド': 0, 'ド#': 1, 'レ': 2, 'レ#': 3, 'ミ': 4, 'ファ': 5, 'ファ#': 6,
     'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11,
-    // 既存データへのフォールバック対応
     'Do': 0, 'Do#': 1, 'Re': 2, 'Re#': 3, 'Mi': 4, 'Fa': 5, 'Fa#': 6,
     'Sol': 7, 'Sol#': 8, 'La': 9, 'La#': 10, 'Si': 11
   };
   
-  let name = degreeStr.replace(/[↑↓]/g, '');
+  // 空白の除去と全角/半角の正規化
+  let normalizedStr = degreeStr.trim().replace(/♯/g, '#').replace(/♭/g, 'b');
+  
+  // 階名部分の抽出（矢印などを除外）
+  let name = normalizedStr.replace(/[↑↓⬆⬇⇧⇩]/g, '');
   let val = baseMap[name] !== undefined ? baseMap[name] : 0;
   
   // オクターブシフトの計算
-  const upCount = (degreeStr.match(/↑/g) || []).length;
-  const downCount = (degreeStr.match(/↓/g) || []).length;
+  const upCount = (normalizedStr.match(/[↑⬆⇧]/g) || []).length;
+  const downCount = (normalizedStr.match(/[↓⬇⇩]/g) || []).length;
   
   return val + (upCount * 12) - (downCount * 12);
 }
@@ -35,12 +40,16 @@ export default function PitchPatternCanvas({ degrees = [], height = 80 }) {
     return PADDING_X + (index / (values.length - 1)) * (SVG_WIDTH - PADDING_X * 2);
   };
 
-  // Y座標の計算（値の範囲に応じてスケーリング）
+  // Y座標の計算（値の絶対的な上下関係を維持するため、最低14半音分のスケールを確保）
+  const minRange = 14; 
+  const effectiveRange = Math.max(range, minRange);
+  
   const getY = (val) => {
-    if (range === 0) return SVG_HEIGHT / 2;
-    // Y軸は上がマイナス（0）なので反転させる
-    const normalized = (val - minVal) / range;
-    return SVG_HEIGHT - PADDING_Y - normalized * (SVG_HEIGHT - PADDING_Y * 2);
+    if (values.length === 0) return SVG_HEIGHT / 2;
+    const centerVal = (minVal + maxVal) / 2;
+    const normalized = (val - centerVal) / effectiveRange;
+    // 上がマイナスなので引く
+    return SVG_HEIGHT / 2 - normalized * (SVG_HEIGHT - PADDING_Y * 2);
   };
 
   const points = values.map((val, i) => `${getX(i)},${getY(val)}`).join(' ');
