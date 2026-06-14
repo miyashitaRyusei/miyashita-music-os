@@ -1,11 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { encodeAudioToMp3 } from '../utils/audioEncoder';
-import { uploadSongToLibrary, fetchLibrarySongs, deleteLibrarySong, updateLibrarySongTitle } from '../utils/libraryApi';
-import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, FolderIcon, MagnifyingGlassIcon, MusicalNoteIcon, PencilIcon, ForwardIcon, BackwardIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { uploadSongToLibrary, fetchLibrarySongs, deleteLibrarySong, updateLibrarySongTitle, fetchLibraryFolders, createLibraryFolder, updateLibraryFolderName, deleteLibraryFolder, updateSongFolder } from '../utils/libraryApi';
+import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, FolderIcon, MagnifyingGlassIcon, MusicalNoteIcon, PencilIcon, ForwardIcon, BackwardIcon, ArrowPathIcon, FolderPlusIcon, ArrowUturnUpIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function MyLibrary() {
   const [songs, setSongs] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  
+  // フォルダ作成・編集
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [editingFolderId, setEditingFolderId] = useState(null);
+  const [editFolderName, setEditFolderName] = useState('');
+
+  // 移動モード用
+  const [movingSongId, setMovingSongId] = useState(null);
   
   // 検索・フィルター関連
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,8 +46,12 @@ export default function MyLibrary() {
   const loadSongs = async () => {
     setIsLoading(true);
     try {
-      const data = await fetchLibrarySongs();
-      setSongs(data);
+      const [songsData, foldersData] = await Promise.all([
+        fetchLibrarySongs(),
+        fetchLibraryFolders()
+      ]);
+      setSongs(songsData);
+      setFolders(foldersData);
     } catch (err) {
       console.error(err);
       alert('曲の読み込みに失敗しました');
@@ -48,11 +63,28 @@ export default function MyLibrary() {
   // --- フィルタリング ---
   const allTags = Array.from(new Set(songs.flatMap(s => s.tags || []))).sort();
 
+  const isSearching = searchQuery.trim() !== '' || selectedTag !== '';
+
   const filteredSongs = songs.filter(song => {
     const matchSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchTag = selectedTag ? (song.tags && song.tags.includes(selectedTag)) : true;
-    return matchSearch && matchTag;
+    const matchFolder = isSearching ? true : (song.folder_id === currentFolderId);
+    return matchSearch && matchTag && matchFolder;
   });
+
+  const filteredFolders = isSearching ? [] : folders.filter(f => f.parent_id === currentFolderId);
+
+  // --- パンくずリスト生成 ---
+  const getBreadcrumbs = () => {
+    const crumbs = [];
+    let current = folders.find(f => f.id === currentFolderId);
+    while (current) {
+      crumbs.unshift(current);
+      current = folders.find(f => f.id === current.parent_id);
+    }
+    return crumbs;
+  };
+  const breadcrumbs = getBreadcrumbs();
 
   // --- 再生機能 ---
   const currentSongIndex = filteredSongs.findIndex(s => s.id === currentPlayingId);
@@ -201,18 +233,41 @@ export default function MyLibrary() {
     let successCount = 0;
     
     try {
+      // フォルダキャッシュ
+      let currentFoldersCache = [...folders];
+
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         
         // 1. MP3エンコード
         setUploadStatus(`[${i+1}/${selectedFiles.length}] ${file.name} をMP3エンコード中...`);
-        setUploadProgress(0); // 1ファイルごとの進捗リセット（全体進捗を見せる場合は計算を変える）
+        setUploadProgress(0); 
         
         const { blob: mp3Blob, duration } = await encodeAudioToMp3(file, (progress) => {
-          // 個別ファイルの進捗 (0~0.5) ＋ 全体進捗
           const overallProgress = (i + progress * 0.5) / selectedFiles.length;
           setUploadProgress(overallProgress);
         });
+
+        // フォルダパスの解析と自動生成
+        let targetFolderId = currentFolderId;
+        if (file.webkitRelativePath) {
+          const parts = file.webkitRelativePath.split('/');
+          parts.pop(); // ファイル名を除外
+
+          if (parts.length > 0) {
+            // macOSなどの場合、最初の要素がルートフォルダ名になることがあるが、そのまま反映する
+            let currentParentId = currentFolderId;
+            for (const folderName of parts) {
+              let existingFolder = currentFoldersCache.find(f => f.name === folderName && f.parent_id === currentParentId);
+              if (!existingFolder) {
+                existingFolder = await createLibraryFolder(folderName, currentParentId);
+                currentFoldersCache.push(existingFolder);
+              }
+              currentParentId = existingFolder.id;
+            }
+            targetFolderId = currentParentId;
+          }
+        }
         
         // 2. クラウドアップロード
         setUploadStatus(`[${i+1}/${selectedFiles.length}] ${file.name} をアップロード中...`);
@@ -220,10 +275,9 @@ export default function MyLibrary() {
         setUploadProgress(overallProgressAfterEncode);
         
         const tagsArray = uploadTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
-        // 複数ファイルの場合は連番か元のファイル名を使うのが理想だが、ここではシンプルに元のファイル名を使う
         const titleToUse = selectedFiles.length === 1 ? uploadTitle : file.name.replace(/\.[^/.]+$/, "");
         
-        await uploadSongToLibrary(mp3Blob, titleToUse, tagsArray, duration);
+        await uploadSongToLibrary(mp3Blob, titleToUse, tagsArray, duration, targetFolderId);
         
         successCount++;
         setUploadProgress((i + 1) / selectedFiles.length);
@@ -260,7 +314,42 @@ export default function MyLibrary() {
       await deleteLibrarySong(song);
       setSongs(songs.filter(s => s.id !== song.id));
     } catch (err) {
+      console.error(err);
       alert('削除に失敗しました: ' + err.message);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const folder = await createLibraryFolder(newFolderName.trim(), currentFolderId);
+      setFolders(prev => [...prev, folder]);
+      setNewFolderName('');
+      setIsCreatingFolder(false);
+    } catch(e) {
+      alert(e.message);
+    }
+  };
+
+  const handleDeleteFolder = async (folder, e) => {
+    e.stopPropagation();
+    if (!window.confirm(`「${folder.name}」とその中のすべてのファイルを削除しますか？\n（この操作は元に戻せません）`)) return;
+    try {
+      await deleteLibraryFolder(folder.id);
+      setFolders(folders.filter(f => f.id !== folder.id));
+      loadSongs(); // フォルダ内の曲もDB上でCASCADE削除されるため再読み込み
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const handleMoveSong = async (targetFolderId) => {
+    try {
+      await updateSongFolder(movingSongId, targetFolderId);
+      setSongs(songs.map(s => s.id === movingSongId ? {...s, folder_id: targetFolderId} : s));
+      setMovingSongId(null);
+    } catch(e) {
+      alert(e.message);
     }
   };
 
@@ -275,6 +364,20 @@ export default function MyLibrary() {
       setEditingId(null);
     } catch (err) {
       alert('タイトルの更新に失敗しました: ' + err.message);
+    }
+  };
+
+  const handleRenameFolderSubmit = async (folderId) => {
+    if (!editFolderName.trim()) {
+      setEditingFolderId(null);
+      return;
+    }
+    try {
+      const updated = await updateLibraryFolderName(folderId, editFolderName);
+      setFolders(folders.map(f => f.id === folderId ? updated : f));
+      setEditingFolderId(null);
+    } catch (err) {
+      alert('フォルダ名の更新に失敗しました: ' + err.message);
     }
   };
 
@@ -403,10 +506,120 @@ export default function MyLibrary() {
 
       {/* --- ライブラリ一覧 --- */}
       <div className="glass-panel" style={{ padding: '32px' }}>
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          ストック済み <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>({songs.length}曲)</span>
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+          <h2 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            ストック済み <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>({songs.length}曲)</span>
+          </h2>
+          <button 
+            className="btn btn-outline" 
+            onClick={() => setIsCreatingFolder(true)} 
+            style={{ padding: '8px 16px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem' }}
+          >
+            <FolderPlusIcon style={{ width: '18px', height: '18px' }} />
+            新規フォルダ
+          </button>
+        </div>
+
+        {/* パンくずリスト */}
+        {!isSearching && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => setCurrentFolderId(null)}
+              style={{ background: 'none', border: 'none', color: currentFolderId === null ? 'var(--text-primary)' : 'var(--accent-blue)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }}
+            >
+              ホーム
+            </button>
+            {breadcrumbs.map((crumb, idx) => (
+              <div key={crumb.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>/</span>
+                <button 
+                  onClick={() => setCurrentFolderId(crumb.id)}
+                  style={{ background: 'none', border: 'none', color: idx === breadcrumbs.length - 1 ? 'var(--text-primary)' : 'var(--accent-blue)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }}
+                >
+                  {crumb.name}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         
+        {/* --- フォルダ一覧 --- */}
+        {!isLoading && filteredFolders.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>フォルダ</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+              {filteredFolders.map(folder => (
+                <div 
+                  key={folder.id}
+                  onClick={() => setCurrentFolderId(folder.id)}
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-blue)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.transform = 'none' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                    <FolderIcon style={{ width: '24px', height: '24px', color: 'var(--accent-blue)', flexShrink: 0 }} />
+                    {editingFolderId === folder.id ? (
+                      <input
+                        type="text"
+                        className="select-input"
+                        value={editFolderName}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setEditFolderName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameFolderSubmit(folder.id);
+                          if (e.key === 'Escape') setEditingFolderId(null);
+                        }}
+                        onBlur={() => handleRenameFolderSubmit(folder.id)}
+                        autoFocus
+                        style={{ padding: '4px 8px', width: '100%' }}
+                      />
+                    ) : (
+                      <span style={{ fontWeight: 'bold', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{folder.name}</span>
+                    )}
+                  </div>
+                  
+                  {/* フォルダ操作メニュー */}
+                  {!editingFolderId && (
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button 
+                        className="btn" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingFolderId(folder.id);
+                          setEditFolderName(folder.name);
+                        }}
+                        style={{ padding: '6px', background: 'transparent', border: 'none', color: 'var(--text-secondary)' }}
+                        title="名前を変更"
+                      >
+                        <PencilIcon style={{ width: '16px', height: '16px' }} />
+                      </button>
+                      <button 
+                        className="btn delete-btn" 
+                        onClick={(e) => handleDeleteFolder(folder, e)}
+                        style={{ padding: '6px', background: 'transparent', border: 'none', color: 'var(--accent-red)' }}
+                        title="フォルダを削除"
+                      >
+                        <TrashIcon style={{ width: '16px', height: '16px' }} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {songs.length > 0 && (
           <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
@@ -566,6 +779,17 @@ export default function MyLibrary() {
                     </button>
                     <button 
                       className="btn btn-secondary delete-btn" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMovingSongId(song.id);
+                      }}
+                      style={{ padding: '8px', background: 'transparent', border: 'none', color: 'var(--text-secondary)' }}
+                      title="フォルダを移動"
+                    >
+                      <ArrowRightOnRectangleIcon style={{ width: '18px', height: '18px' }} />
+                    </button>
+                    <button 
+                      className="btn btn-secondary delete-btn" 
                       style={{ padding: '8px', color: 'var(--accent-orange)', background: 'transparent', border: 'none' }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -684,6 +908,76 @@ export default function MyLibrary() {
                 <ArrowPathIcon style={{ width: '20px', height: '20px' }} />
                 <span className="hide-on-mobile">連続再生</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* --- 新規フォルダ作成モーダル --- */}
+      {isCreatingFolder && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }} onClick={() => setIsCreatingFolder(false)}>
+          <div className="glass-panel" style={{ padding: '32px', width: '90%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: '16px' }}>新規フォルダ作成</h3>
+            <input 
+              type="text" 
+              className="select-input" 
+              value={newFolderName} 
+              onChange={e => setNewFolderName(e.target.value)} 
+              placeholder="フォルダ名"
+              autoFocus
+              style={{ width: '100%', marginBottom: '24px', padding: '12px' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateFolder();
+                if (e.key === 'Escape') setIsCreatingFolder(false);
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button className="btn btn-secondary" onClick={() => setIsCreatingFolder(false)}>キャンセル</button>
+              <button className="btn btn-primary" onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- 曲の移動モーダル --- */}
+      {movingSongId && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }} onClick={() => setMovingSongId(null)}>
+          <div className="glass-panel" style={{ padding: '32px', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: '16px' }}>移動先を選択</h3>
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '24px', background: 'var(--bg-primary)', borderRadius: '12px', padding: '12px', border: '1px solid var(--border-light)' }}>
+              
+              <div 
+                onClick={() => handleMoveSong(null)}
+                style={{ padding: '12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <ArrowUturnUpIcon style={{ width: '20px', height: '20px', color: 'var(--text-secondary)' }} />
+                <span>ホーム（ルート階層）へ移動</span>
+              </div>
+              
+              <div style={{ height: '1px', background: 'var(--border-light)', margin: '8px 0' }} />
+              
+              {folders.map(folder => (
+                <div 
+                  key={folder.id}
+                  onClick={() => handleMoveSong(folder.id)}
+                  style={{ padding: '12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <FolderIcon style={{ width: '20px', height: '20px', color: 'var(--accent-blue)' }} />
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{folder.name}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setMovingSongId(null)}>キャンセル</button>
             </div>
           </div>
         </div>

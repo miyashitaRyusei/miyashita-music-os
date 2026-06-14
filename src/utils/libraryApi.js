@@ -13,8 +13,9 @@ const TABLE_NAME = 'original_songs';
  * @param {string} title - 曲名
  * @param {Array<string>} tags - タグの配列
  * @param {number} duration - 曲の長さ（秒）
+ * @param {string|null} folderId - フォルダのID
  */
-export async function uploadSongToLibrary(mp3Blob, title, tags, duration) {
+export async function uploadSongToLibrary(mp3Blob, title, tags, duration, folderId = null) {
   try {
     // 1. ファイル名の生成 (一意にするためタイムスタンプを利用)
     const timestamp = Date.now();
@@ -47,7 +48,8 @@ export async function uploadSongToLibrary(mp3Blob, title, tags, duration) {
           title, 
           tags, 
           mp3_url: publicUrl,
-          duration
+          duration,
+          folder_id: folderId
         }
       ])
       .select();
@@ -132,3 +134,97 @@ export async function updateLibrarySongTitle(id, newTitle) {
 
   return data[0];
 }
+
+/**
+ * 曲の所属フォルダを更新する（移動）
+ */
+export async function updateSongFolder(id, folderId) {
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .update({ folder_id: folderId })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error('updateSongFolder error:', error);
+    throw new Error(`移動に失敗しました: ${error.message}`);
+  }
+
+  return data[0];
+}
+
+// ==========================================
+// フォルダ管理 API
+// ==========================================
+
+const FOLDERS_TABLE = 'library_folders';
+
+/**
+ * すべてのフォルダを取得する
+ */
+export async function fetchLibraryFolders() {
+  const { data, error } = await supabase
+    .from(FOLDERS_TABLE)
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('fetchLibraryFolders error:', error);
+    throw new Error(`フォルダの取得に失敗しました: ${error.message}`);
+  }
+  
+  return data;
+}
+
+/**
+ * 新しいフォルダを作成する
+ */
+export async function createLibraryFolder(name, parentId = null) {
+  const { data, error } = await supabase
+    .from(FOLDERS_TABLE)
+    .insert([{ name, parent_id: parentId }])
+    .select();
+
+  if (error) {
+    console.error('createLibraryFolder error:', error);
+    throw new Error(`フォルダの作成に失敗しました: ${error.message}`);
+  }
+
+  return data[0];
+}
+
+/**
+ * フォルダの名前を変更する
+ */
+export async function updateLibraryFolderName(id, newName) {
+  const { data, error } = await supabase
+    .from(FOLDERS_TABLE)
+    .update({ name: newName })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error('updateLibraryFolderName error:', error);
+    throw new Error(`フォルダ名の更新に失敗しました: ${error.message}`);
+  }
+
+  return data[0];
+}
+
+/**
+ * フォルダを削除する (中身の曲も CASCADE により削除される)
+ */
+export async function deleteLibraryFolder(id) {
+  const { error } = await supabase
+    .from(FOLDERS_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('deleteLibraryFolder error:', error);
+    throw new Error(`フォルダの削除に失敗しました: ${error.message}`);
+  }
+  
+  return true;
+}
+
