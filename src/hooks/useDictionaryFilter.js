@@ -166,7 +166,10 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
         const queryChords = advancedFilters.includedChords.split(',').map(c => c.trim()).filter(c => c);
         result = result.filter(item => {
           if (!item.chords) return false;
-          return queryChords.every(qc => item.chords.some(c => c.includes(qc)));
+          return queryChords.every(qc => item.chords.some(c => {
+            const chordName = typeof c === 'object' ? c.name : c;
+            return chordName.includes(qc);
+          }));
         });
       }
       if (advancedFilters.minChords) {
@@ -176,10 +179,18 @@ export function useDictionaryFilter(items, dictionaryType = 'generic') {
         result = result.filter(item => item.chords && item.chords.length <= parseInt(advancedFilters.maxChords, 10));
       }
       if (advancedFilters.startChord) {
-        result = result.filter(item => item.chords && item.chords[0] === advancedFilters.startChord);
+        result = result.filter(item => {
+          if (!item.chords || item.chords.length === 0) return false;
+          const firstChord = typeof item.chords[0] === 'object' ? item.chords[0].name : item.chords[0];
+          return firstChord === advancedFilters.startChord;
+        });
       }
       if (advancedFilters.endChord) {
-        result = result.filter(item => item.chords && item.chords[item.chords.length - 1] === advancedFilters.endChord);
+        result = result.filter(item => {
+          if (!item.chords || item.chords.length === 0) return false;
+          const lastChord = typeof item.chords[item.chords.length - 1] === 'object' ? item.chords[item.chords.length - 1].name : item.chords[item.chords.length - 1];
+          return lastChord === advancedFilters.endChord;
+        });
       }
       if (advancedFilters.hasNonDiatonic === 'yes') {
         result = result.filter(item => item.chords && hasNonDiatonic(item.chords));

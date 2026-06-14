@@ -125,5 +125,8 @@ export function isDiatonicInC(chordName) {
  * コード進行配列の中に、ノンダイアトニックコードが1つでも含まれているか判定
  */
 export function hasNonDiatonic(chordsArray) {
-  return chordsArray.some(chord => !isDiatonicInC(chord));
+  return chordsArray.some(chord => {
+    const chordName = typeof chord === 'object' ? chord.name : chord;
+    return !isDiatonicInC(chordName);
+  });
 }
