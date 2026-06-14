@@ -114,3 +114,21 @@ export async function deleteLibrarySong(song) {
     throw error;
   }
 }
+
+/**
+ * 曲のタイトルを更新する
+ */
+export async function updateLibrarySongTitle(id, newTitle) {
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .update({ title: newTitle })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error('updateLibrarySongTitle error:', error);
+    throw new Error(`タイトルの更新に失敗しました: ${error.message}`);
+  }
+
+  return data[0];
+}

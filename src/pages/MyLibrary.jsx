@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { encodeAudioToMp3 } from '../utils/audioEncoder';
-import { uploadSongToLibrary, fetchLibrarySongs, deleteLibrarySong } from '../utils/libraryApi';
-import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, FolderIcon, MagnifyingGlassIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { uploadSongToLibrary, fetchLibrarySongs, deleteLibrarySong, updateLibrarySongTitle } from '../utils/libraryApi';
+import { PlayIcon, PauseIcon, TrashIcon, CloudArrowUpIcon, FolderIcon, MagnifyingGlassIcon, MusicalNoteIcon, PencilIcon, ForwardIcon, BackwardIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 export default function MyLibrary() {
   const [songs, setSongs] = useState([]);
@@ -11,9 +11,13 @@ export default function MyLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   
+  // 編集関連
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+
   // アップロード関連
   const [isDragOver, setIsDragOver] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadTags, setUploadTags] = useState(''); // カンマ区切りの文字列
   const [isUploading, setIsUploading] = useState(false);
@@ -22,6 +26,10 @@ export default function MyLibrary() {
 
   // 再生関連
   const [currentPlayingId, setCurrentPlayingId] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isAutoPlay, setIsAutoPlay] = useState(true); // 連続再生
   const audioRef = useRef(new Audio());
 
   const loadSongs = async () => {
@@ -37,18 +45,57 @@ export default function MyLibrary() {
     }
   };
 
+  // --- 再生機能 ---
+  const currentSongIndex = filteredSongs.findIndex(s => s.id === currentPlayingId);
+  const currentSong = currentPlayingId ? filteredSongs[currentSongIndex] : null;
+
   useEffect(() => {
     setTimeout(() => {
       loadSongs();
     }, 0);
     
     const audio = audioRef.current;
-    const handleEnded = () => setCurrentPlayingId(null);
-    audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
-  }, []);
+    
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      setDuration(audio.duration || 0);
+    };
+    
+    const handleEnded = () => {
+      if (isAutoPlay) {
+        // 次の曲へ
+        playNext();
+      } else {
+        setIsPlaying(false);
+        setCurrentPlayingId(null);
+      }
+    };
+    
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
 
-  // --- 再生機能 ---
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, [isAutoPlay, filteredSongs, currentPlayingId]); // 依存配列に必要なものを追加
+
+  const playSong = (song) => {
+    const audio = audioRef.current;
+    if (currentPlayingId !== song.id) {
+      audio.src = song.mp3_url;
+      setCurrentPlayingId(song.id);
+    }
+    audio.play();
+  };
+
   const togglePlay = (song) => {
     const audio = audioRef.current;
     if (currentPlayingId === song.id) {
@@ -56,13 +103,38 @@ export default function MyLibrary() {
         audio.play();
       } else {
         audio.pause();
-        setCurrentPlayingId(null);
       }
     } else {
-      audio.src = song.mp3_url;
-      audio.play();
-      setCurrentPlayingId(song.id);
+      playSong(song);
     }
+  };
+
+  const playNext = () => {
+    if (currentSongIndex >= 0 && currentSongIndex < filteredSongs.length - 1) {
+      playSong(filteredSongs[currentSongIndex + 1]);
+    } else {
+      // リストの最後なら停止
+      setIsPlaying(false);
+      setCurrentPlayingId(null);
+    }
+  };
+
+  const playPrev = () => {
+    const audio = audioRef.current;
+    // 3秒以上再生していたら曲の頭に戻るだけ
+    if (audio.currentTime > 3) {
+      audio.currentTime = 0;
+      return;
+    }
+    if (currentSongIndex > 0) {
+      playSong(filteredSongs[currentSongIndex - 1]);
+    }
+  };
+
+  const handleSeek = (e) => {
+    const time = parseFloat(e.target.value);
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
   };
 
   // --- ドラッグ＆ドロップ ---
@@ -79,28 +151,28 @@ export default function MyLibrary() {
     e.preventDefault();
     setIsDragOver(false);
     
-    const file = e.dataTransfer.files[0];
-    if (file && (file.type.startsWith('audio/') || file.name.endsWith('.wav') || file.name.endsWith('.mp3'))) {
-      setSelectedFile(file);
-      // 拡張子を除いたファイル名を初期タイトルに
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-      setUploadTitle(nameWithoutExt);
+    // フォルダも考慮してすべてのファイルをフラットに取得（簡易版：DataTransferItemListを再帰的に読むのは複雑なため、
+    // まずは通常のファイルリストから取得。実はwebkitdirectory属性があればドラッグ＆ドロップでもフォルダ内のファイルが展開されるブラウザもある）
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.endsWith('.wav') || f.name.endsWith('.mp3'));
+    
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      setUploadTitle(files.length === 1 ? files[0].name.replace(/\.[^/.]+$/, "") : `${files.length}個のファイル`);
     } else {
       alert('音声ファイルをドロップしてください！');
     }
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-      setUploadTitle(nameWithoutExt);
+    const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/') || f.name.endsWith('.wav') || f.name.endsWith('.mp3'));
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      setUploadTitle(files.length === 1 ? files[0].name.replace(/\.[^/.]+$/, "") : `${files.length}個のファイル`);
     }
   };
 
   const cancelUpload = () => {
-    setSelectedFile(null);
+    setSelectedFiles(null);
     setUploadTitle('');
     setUploadTags('');
     setUploadProgress(0);
@@ -109,42 +181,59 @@ export default function MyLibrary() {
 
   // --- アップロード処理 ---
   const handleUpload = async () => {
-    if (!selectedFile || !uploadTitle) return;
+    if (!selectedFiles || selectedFiles.length === 0 || !uploadTitle) return;
     
     setIsUploading(true);
     setUploadProgress(0);
     
+    let successCount = 0;
+    
     try {
-      // 1. MP3エンコード
-      setUploadStatus('MP3に高音質エンコード中...');
-      const { blob: mp3Blob, duration } = await encodeAudioToMp3(selectedFile, (progress) => {
-        setUploadProgress(progress * 0.5); // エンコードは全体進捗の50%とする
-      });
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        
+        // 1. MP3エンコード
+        setUploadStatus(`[${i+1}/${selectedFiles.length}] ${file.name} をMP3エンコード中...`);
+        setUploadProgress(0); // 1ファイルごとの進捗リセット（全体進捗を見せる場合は計算を変える）
+        
+        const { blob: mp3Blob, duration } = await encodeAudioToMp3(file, (progress) => {
+          // 個別ファイルの進捗 (0~0.5) ＋ 全体進捗
+          const overallProgress = (i + progress * 0.5) / selectedFiles.length;
+          setUploadProgress(overallProgress);
+        });
+        
+        // 2. クラウドアップロード
+        setUploadStatus(`[${i+1}/${selectedFiles.length}] ${file.name} をアップロード中...`);
+        const overallProgressAfterEncode = (i + 0.8) / selectedFiles.length;
+        setUploadProgress(overallProgressAfterEncode);
+        
+        const tagsArray = uploadTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        // 複数ファイルの場合は連番か元のファイル名を使うのが理想だが、ここではシンプルに元のファイル名を使う
+        const titleToUse = selectedFiles.length === 1 ? uploadTitle : file.name.replace(/\.[^/.]+$/, "");
+        
+        await uploadSongToLibrary(mp3Blob, titleToUse, tagsArray, duration);
+        
+        successCount++;
+        setUploadProgress((i + 1) / selectedFiles.length);
+      }
       
-      // 2. クラウドアップロード
-      setUploadStatus('クラウドにアップロード中...');
-      // 雑に50%→100%に進める（実際は一瞬で終わるか、APIにプログレス機能がないため）
-      setUploadProgress(0.8);
-      
-      const tagsArray = uploadTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
-      
-      await uploadSongToLibrary(mp3Blob, uploadTitle, tagsArray, duration);
-      
-      setUploadProgress(1.0);
-      setUploadStatus('完了！');
+      setUploadStatus('すべて完了しました！');
       
       // リセットして一覧更新
       setTimeout(() => {
         cancelUpload();
         setIsUploading(false);
         loadSongs();
-      }, 1000);
+      }, 1500);
       
     } catch (err) {
       console.error(err);
       alert('エラーが発生しました: ' + err.message);
       setIsUploading(false);
       setUploadStatus('');
+      if (successCount > 0) {
+        loadSongs(); // 成功した分だけ再読み込み
+      }
     }
   };
 
@@ -160,6 +249,20 @@ export default function MyLibrary() {
       setSongs(songs.filter(s => s.id !== song.id));
     } catch (err) {
       alert('削除に失敗しました: ' + err.message);
+    }
+  };
+
+  const handleRenameSubmit = async (songId) => {
+    if (!editTitle.trim()) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      const updated = await updateLibrarySongTitle(songId, editTitle);
+      setSongs(songs.map(s => s.id === songId ? updated : s));
+      setEditingId(null);
+    } catch (err) {
+      alert('タイトルの更新に失敗しました: ' + err.message);
     }
   };
 
@@ -181,6 +284,7 @@ export default function MyLibrary() {
   });
 
   return (
+    <div style={{ paddingBottom: currentSong ? '90px' : '0' }}>
     <div 
       className="container" 
       style={{ padding: '24px 0', maxWidth: '1000px', margin: '0 auto', position: 'relative', minHeight: '80vh' }}
@@ -223,33 +327,38 @@ export default function MyLibrary() {
           </p>
         </div>
         
-        {!selectedFile && (
-          <div>
+        {!selectedFiles && (
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <label className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '30px', background: 'var(--bg-primary)' }}>
+              <MusicalNoteIcon style={{ width: '20px', height: '20px' }} />
+              <span style={{ fontWeight: 'bold' }}>ファイル選択</span>
+              <input type="file" multiple accept="audio/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+            </label>
             <label className="btn btn-primary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '30px' }}>
-              <CloudArrowUpIcon style={{ width: '20px', height: '20px' }} />
-              <span style={{ fontWeight: 'bold' }}>新規アップロード</span>
-              <input id="file-upload-input" type="file" accept="audio/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+              <FolderIcon style={{ width: '20px', height: '20px' }} />
+              <span style={{ fontWeight: 'bold' }}>フォルダごと</span>
+              <input type="file" webkitdirectory="true" directory="true" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
             </label>
           </div>
         )}
       </div>
 
       {/* --- アップロード準備フォーム（ファイル選択時のみ表示） --- */}
-      {selectedFile && (
+      {selectedFiles && (
         <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', borderLeft: '4px solid var(--accent-blue)', animation: 'slideIn 0.3s ease-out' }}>
 
           <div style={{ maxWidth: '500px', margin: '0 auto' }}>
             <h3 style={{ marginBottom: '16px', color: 'var(--accent-blue)' }}>アップロード準備</h3>
             
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>曲名</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>曲名 {selectedFiles.length > 1 && '(※複数ファイルの場合は元のファイル名が使用されます)'}</label>
               <input 
                 type="text" 
                 className="select-input" 
                 style={{ width: '100%', padding: '12px' }}
                 value={uploadTitle}
                 onChange={(e) => setUploadTitle(e.target.value)}
-                disabled={isUploading}
+                disabled={isUploading || selectedFiles.length > 1}
               />
             </div>
             
@@ -364,10 +473,10 @@ export default function MyLibrary() {
                 }}
               >
                 <button 
-                  className={`btn ${currentPlayingId === song.id ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ width: '44px', height: '44px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0, boxShadow: currentPlayingId === song.id ? '0 4px 12px rgba(59,130,246,0.3)' : 'none' }}
+                  className={`btn ${currentPlayingId === song.id && isPlaying ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ width: '44px', height: '44px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0, boxShadow: currentPlayingId === song.id && isPlaying ? '0 4px 12px rgba(59,130,246,0.3)' : 'none' }}
                 >
-                  {currentPlayingId === song.id ? 
+                  {currentPlayingId === song.id && isPlaying ? 
                     <PauseIcon style={{ width: '20px', height: '20px' }} /> : 
                     <PlayIcon style={{ width: '20px', height: '20px', marginLeft: '4px' }} />
                   }
@@ -376,9 +485,26 @@ export default function MyLibrary() {
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                   
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontSize: '1.05rem', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: currentPlayingId === song.id ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
-                      {song.title}
-                    </h3>
+                    {editingId === song.id ? (
+                      <input
+                        type="text"
+                        className="select-input"
+                        autoFocus
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onBlur={() => handleRenameSubmit(song.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameSubmit(song.id);
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        style={{ width: '100%', marginBottom: '4px', padding: '4px 8px' }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <h3 style={{ fontSize: '1.05rem', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: currentPlayingId === song.id ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                        {song.title}
+                      </h3>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                         {new Date(song.created_at).toLocaleDateString()}
@@ -424,8 +550,23 @@ export default function MyLibrary() {
                     
                     <button 
                       className="btn btn-secondary delete-btn" 
+                      style={{ padding: '8px', color: 'var(--text-secondary)', background: 'transparent', border: 'none' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingId(song.id);
+                        setEditTitle(song.title);
+                      }}
+                      title="タイトル編集"
+                    >
+                      <PencilIcon style={{ width: '18px', height: '18px' }} />
+                    </button>
+                    <button 
+                      className="btn btn-secondary delete-btn" 
                       style={{ padding: '8px', color: 'var(--accent-orange)', background: 'transparent', border: 'none' }}
-                      onClick={() => handleDelete(song)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(song);
+                      }}
                       title="削除"
                     >
                       <TrashIcon style={{ width: '20px', height: '20px' }} />
@@ -438,7 +579,111 @@ export default function MyLibrary() {
           </div>
         )}
       </div>
+    </div>
 
+      {/* --- グローバルプレイヤー（追従型） --- */}
+      {currentSong && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderTop: '1px solid var(--border-light)',
+          padding: '12px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          zIndex: 100,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
+          animation: 'slideUp 0.3s ease-out'
+        }}>
+          {/* シークバー */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+            <span>{formatDuration(currentTime)}</span>
+            <input 
+              type="range" 
+              min={0} 
+              max={duration || 100} 
+              value={currentTime} 
+              onChange={handleSeek}
+              style={{ flex: 1, cursor: 'pointer', height: '4px', accentColor: 'var(--accent-blue)' }}
+            />
+            <span>{formatDuration(duration)}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* 曲情報 */}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div>
+                <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentSong.title}
+                </h4>
+                {currentSong.tags && currentSong.tags.length > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {currentSong.tags.join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* コントロール */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button 
+                className="btn"
+                style={{ background: 'transparent', padding: '8px', color: 'var(--text-primary)', border: 'none' }}
+                onClick={playPrev}
+                title="前の曲へ"
+              >
+                <BackwardIcon style={{ width: '24px', height: '24px' }} />
+              </button>
+              
+              <button 
+                className="btn btn-primary"
+                style={{ width: '48px', height: '48px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
+                onClick={() => togglePlay(currentSong)}
+              >
+                {isPlaying ? 
+                  <PauseIcon style={{ width: '24px', height: '24px' }} /> : 
+                  <PlayIcon style={{ width: '24px', height: '24px', marginLeft: '4px' }} />
+                }
+              </button>
+              
+              <button 
+                className="btn"
+                style={{ background: 'transparent', padding: '8px', color: 'var(--text-primary)', border: 'none' }}
+                onClick={playNext}
+                title="次の曲へ"
+              >
+                <ForwardIcon style={{ width: '24px', height: '24px' }} />
+              </button>
+            </div>
+
+            {/* 右側オプション */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <button
+                className="btn"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '8px',
+                  color: isAutoPlay ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.85rem'
+                }}
+                onClick={() => setIsAutoPlay(!isAutoPlay)}
+                title="連続再生"
+              >
+                <ArrowPathIcon style={{ width: '20px', height: '20px' }} />
+                <span className="hide-on-mobile">連続再生</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
