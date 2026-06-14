@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export default function RhythmPatternCanvas({ timings = [], height = 60 }) {
   // アウフタクト（マイナス時間）がある場合のオフセット計算

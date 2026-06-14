@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import { progressionDataI, progressionDataIV, progressionDataMix } from '../data/chordTrainerData';
 import { PlayIcon, StopIcon, EyeIcon, ForwardIcon } from '@heroicons/react/24/solid';
-import { SparklesIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon } from '@heroicons/react/24/outline';
 
 export default function EarTraining() {
   const [category, setCategory] = useState('I'); // 'I', 'IV', 'Mix'
@@ -16,49 +16,16 @@ export default function EarTraining() {
   // Tone.jsのSynthとTransport参照を保持
   const synthRef = useRef(null);
 
-  // カテゴリ変更時にプールを初期化
-  useEffect(() => {
-    let sourceData = progressionDataI;
-    if (category === 'IV') sourceData = progressionDataIV;
-    if (category === 'Mix') sourceData = progressionDataMix;
-
-    // フィッシャー・イェーツのシャッフル
-    const shuffledIndices = Array.from({ length: sourceData.length }, (_, i) => i);
-    for (let i = shuffledIndices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
-    }
-
-    setCurrentPool(shuffledIndices);
-    setCurrentPoolIndex(0);
-    setQuestion(sourceData, shuffledIndices, 0);
-    
-    // カテゴリ変更時に再生停止
-    if (isPlaying) {
-      stopSequence();
-    }
-  }, [category]);
-
-  // Tone.jsの初期化
-  useEffect(() => {
-    synthRef.current = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.04, decay: 0.1, sustain: 0.8, release: 0.8 }
-    }).toDestination();
-    synthRef.current.volume.value = -8;
-
-    return () => {
-      stopSequence();
-      if (synthRef.current) {
-        synthRef.current.dispose();
-      }
-    };
-  }, []);
-
   const getSourceData = () => {
     if (category === 'I') return progressionDataI;
     if (category === 'IV') return progressionDataIV;
     return progressionDataMix;
+  };
+
+  const stopSequence = () => {
+    Tone.Transport.stop();
+    Tone.Transport.cancel();
+    setIsPlaying(false);
   };
 
   const setQuestion = (data, pool, index) => {
@@ -70,7 +37,6 @@ export default function EarTraining() {
     let nextIndex = index;
     // プールを一周したら再シャッフル（簡易実装：ここでは最初の問題に戻るか、シャッフルし直す）
     if (nextIndex >= pool.length) {
-      nextIndex = 0;
       // 厳密にはここで再シャッフルすべきだが、一旦プールをリセットする
       const shuffledIndices = [...pool];
       for (let i = shuffledIndices.length - 1; i > 0; i--) {
@@ -90,12 +56,6 @@ export default function EarTraining() {
     const nextIndex = currentPoolIndex + 1;
     setCurrentPoolIndex(nextIndex);
     setQuestion(getSourceData(), currentPool, nextIndex);
-  };
-
-  const stopSequence = () => {
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
-    setIsPlaying(false);
   };
 
   const startSequence = async () => {
@@ -128,6 +88,48 @@ export default function EarTraining() {
   const toggleReveal = () => {
     setIsRevealed(true);
   };
+
+  // カテゴリ変更時にプールを初期化
+  useEffect(() => {
+    let sourceData = progressionDataI;
+    if (category === 'IV') sourceData = progressionDataIV;
+    if (category === 'Mix') sourceData = progressionDataMix;
+
+    // フィッシャー・イェーツのシャッフル
+    const shuffledIndices = Array.from({ length: sourceData.length }, (_, i) => i);
+    for (let i = shuffledIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
+    }
+
+    setTimeout(() => {
+      setCurrentPool(shuffledIndices);
+      setCurrentPoolIndex(0);
+      setQuestion(sourceData, shuffledIndices, 0);
+    }, 0);
+    
+    // カテゴリ変更時に再生停止
+    if (isPlaying) {
+      setTimeout(() => stopSequence(), 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
+
+  // Tone.jsの初期化
+  useEffect(() => {
+    synthRef.current = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.04, decay: 0.1, sustain: 0.8, release: 0.8 }
+    }).toDestination();
+    synthRef.current.volume.value = -8;
+
+    return () => {
+      stopSequence();
+      if (synthRef.current) {
+        synthRef.current.dispose();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isPlaying) {

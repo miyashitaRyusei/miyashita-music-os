@@ -85,6 +85,7 @@ export default function MyLibrary() {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAutoPlay, filteredSongs, currentPlayingId]); // 依存配列に必要なものを追加
 
   const playSong = (song) => {
