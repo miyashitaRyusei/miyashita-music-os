@@ -62,40 +62,7 @@ export default function MyLibrary() {
     setTimeout(() => {
       loadSongs();
     }, 0);
-    
-    const audio = audioRef.current;
-    
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      setDuration(audio.duration || 0);
-    };
-    
-    const handleEnded = () => {
-      if (isAutoPlay) {
-        // 次の曲へ
-        playNext();
-      } else {
-        setIsPlaying(false);
-        setCurrentPlayingId(null);
-      }
-    };
-    
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAutoPlay, filteredSongs, currentPlayingId]); // 依存配列に必要なものを追加
+  }, []);
 
   const playSong = (song) => {
     const audio = audioRef.current;
@@ -146,6 +113,41 @@ export default function MyLibrary() {
     audioRef.current.currentTime = time;
     setCurrentTime(time);
   };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      setDuration(audio.duration || 0);
+    };
+    
+    const handleEnded = () => {
+      if (isAutoPlay) {
+        // 次の曲へ
+        playNext();
+      } else {
+        setIsPlaying(false);
+        setCurrentPlayingId(null);
+      }
+    };
+    
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAutoPlay, filteredSongs, currentPlayingId]); // 依存配列に必要なものを追加
 
   // --- ドラッグ＆ドロップ ---
   const handleDragOver = (e) => {
