@@ -45,6 +45,15 @@ export default function MyLibrary() {
     }
   };
 
+  // --- フィルタリング ---
+  const allTags = Array.from(new Set(songs.flatMap(s => s.tags || []))).sort();
+
+  const filteredSongs = songs.filter(song => {
+    const matchSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchTag = selectedTag ? (song.tags && song.tags.includes(selectedTag)) : true;
+    return matchSearch && matchTag;
+  });
+
   // --- 再生機能 ---
   const currentSongIndex = filteredSongs.findIndex(s => s.id === currentPlayingId);
   const currentSong = currentPlayingId ? filteredSongs[currentSongIndex] : null;
@@ -275,14 +284,6 @@ export default function MyLibrary() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // --- フィルタリング ---
-  const allTags = Array.from(new Set(songs.flatMap(s => s.tags || []))).sort();
-
-  const filteredSongs = songs.filter(song => {
-    const matchSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchTag = selectedTag ? (song.tags && song.tags.includes(selectedTag)) : true;
-    return matchSearch && matchTag;
-  });
 
   return (
     <div style={{ paddingBottom: currentSong ? '90px' : '0' }}>
