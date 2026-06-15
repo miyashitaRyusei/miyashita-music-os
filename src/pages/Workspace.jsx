@@ -404,11 +404,11 @@ export default function Workspace() {
               <div style={{ height: '1px', background: 'var(--border-default)', margin: '16px 0' }} />
               
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>▼ 個別ストック（旧方式） ▼</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn btn--secondary" style={{ flex: 1, justifyContent: 'center', fontSize: '12px' }} onClick={handleStockPitchAndRhythm}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button className="btn btn--secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '12px' }} onClick={handleStockPitchAndRhythm}>
                   ♫ ピッチ＆リズム
                 </button>
-                <button className="btn btn--secondary" style={{ flex: 1, justifyContent: 'center', fontSize: '12px' }} onClick={handleStockChord}>
+                <button className="btn btn--secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '12px' }} onClick={handleStockChord}>
                   🎹 選択コード
                 </button>
               </div>
