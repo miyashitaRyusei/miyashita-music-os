@@ -2,7 +2,10 @@
 function degreeToValue(degreeStr) {
   const baseMap = {
     'ド': 0, 'ド#': 1, 'レ': 2, 'レ#': 3, 'ミ': 4, 'ファ': 5, 'ファ#': 6,
-    'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11
+    'ソ': 7, 'ソ#': 8, 'ラ': 9, 'ラ#': 10, 'シ': 11,
+    'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4,
+    'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9,
+    'A#': 10, 'Bb': 10, 'B': 11
   };
   const name = degreeStr.replace(/[↑↓]/g, '');
   const val = baseMap[name] !== undefined ? baseMap[name] : 0;
@@ -332,19 +335,19 @@ export function calculateMetrics({
 
       // 最高音分析 (Climax) - 最も高いMIDIノートを取得
       const highestNote = notes.reduce((prev, curr) => (prev.pitch > curr.pitch) ? prev : curr);
-      const climaxDeg = highestNote.pitch_name.replace(/\d+$/, '');
+      const climaxDeg = highestNote.pitch_name.replace(/\d+$/, '').replace(/[↑↓]/g, '');
       advancedMetrics[type].climaxDegree[climaxDeg] = (advancedMetrics[type].climaxDegree[climaxDeg] || 0) + 1;
 
       // 終止音分析 (Cadence) - 最後のノート
       const lastNote = notes[notes.length - 1];
-      const cadenceDeg = lastNote.pitch_name.replace(/\d+$/, '');
+      const cadenceDeg = lastNote.pitch_name.replace(/\d+$/, '').replace(/[↑↓]/g, '');
       advancedMetrics[type].cadenceDegree[cadenceDeg] = (advancedMetrics[type].cadenceDegree[cadenceDeg] || 0) + 1;
 
       // メロディ×コード相対度数分析
       notes.forEach(note => {
          advancedMetrics[type].totalNotes++;
          const noteEnd = note.start + note.duration;
-         const noteName = note.pitch_name.replace(/\d+$/, '');
+         const noteName = note.pitch_name.replace(/\d+$/, '').replace(/[↑↓]/g, '');
          
          const overlappingChords = (chords || []).filter(c => {
             const chordEnd = c.start + c.duration;
