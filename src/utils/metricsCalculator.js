@@ -81,7 +81,9 @@ export function calculateMetrics({
     let leapCount = 0;
     let totalIntervals = 0;
     let phraseRiseCount = 0;
-    let pitchClassCounts = {};
+    let totalScaleScore = 0;
+    let totalPEntropyScore = 0;
+    let validPitchPatterns = 0;
     
     group.pitch.forEach(p => {
       const vals = p.degrees.map(degreeToValue);
@@ -94,34 +96,61 @@ export function calculateMetrics({
       if (vals.length > 1 && vals[vals.length - 1] > vals[0]) {
         phraseRiseCount++;
       }
-      // エントロピー・スケール用
+      // エントロピー・スケール用のローカル計算
+      let localPitchClassCounts = {};
       p.degrees.forEach(deg => {
         const baseName = deg.replace(/[↑↓]/g, '');
-        pitchClassCounts[baseName] = (pitchClassCounts[baseName] || 0) + 1;
+        localPitchClassCounts[baseName] = (localPitchClassCounts[baseName] || 0) + 1;
       });
+      
+      const localUniquePitches = Object.keys(localPitchClassCounts).length;
+      if (localUniquePitches > 0) {
+        // スケール制限度: 12音中の使用音数が少ないほど高い
+        const localScaleScore = Math.max(0, 100 - ((localUniquePitches - 1) / 11) * 100);
+        totalScaleScore += localScaleScore;
+        
+        // 音程エントロピー (最大値: log2(12) ≒ 3.58)
+        const localEntropy = calculateEntropy(localPitchClassCounts);
+        const localEntropyScore = Math.min(100, (localEntropy / 3.58) * 100);
+        totalPEntropyScore += localEntropyScore;
+        
+        validPitchPatterns++;
+      }
     });
 
     let syncopationCount = 0;
     let totalRhythmNotes = 0;
     let anacrusisCount = 0;
     let totalDuration = 0;
-    let durationCounts = {};
+    let totalREntropyScore = 0;
+    let validRhythmPatterns = 0;
 
     group.rhythm.forEach(r => {
       // アウフタクト
       if (r.timings.length > 0 && r.timings[0].normalizedTime < 0) {
         anacrusisCount++;
       }
+      
+      let localDurationCounts = {};
       r.timings.forEach(t => {
         // シンコペーション (拍の頭0, 0.25, 0.5, 0.75以外)
         const decimal = t.normalizedTime % 0.25;
         if (decimal > 0.01 && decimal < 0.24) syncopationCount++;
         
         const durStr = t.normalizedDuration.toFixed(3);
-        durationCounts[durStr] = (durationCounts[durStr] || 0) + 1;
+        localDurationCounts[durStr] = (localDurationCounts[durStr] || 0) + 1;
+        
         totalRhythmNotes++;
         totalDuration += t.normalizedDuration;
       });
+      
+      if (r.timings.length > 0) {
+        // 音価エントロピー (最大値を適当に3とする)
+        const localREntropy = calculateEntropy(localDurationCounts);
+        const localREntropyScore = Math.min(100, (localREntropy / 3) * 100);
+        totalREntropyScore += localREntropyScore;
+        validRhythmPatterns++;
+      }
     });
 
     // 1. 跳躍進行率
@@ -132,18 +161,12 @@ export function calculateMetrics({
     const density = totalDuration > 0 ? Math.min(100, (totalRhythmNotes / totalDuration) / 8 * 100) : 0;
     // 4. フレーズ上昇率
     const riseRate = group.pitch.length > 0 ? (phraseRiseCount / group.pitch.length) * 100 : 0;
-    // 5. 音程エントロピー (最大値: log2(12) ≒ 3.58)
-    const pEntropy = calculateEntropy(pitchClassCounts);
-    const pEntropyScore = Math.min(100, (pEntropy / 3.58) * 100);
-    // 6. 音価エントロピー (最大値を適当に3とする)
-    const rEntropy = calculateEntropy(durationCounts);
-    const rEntropyScore = Math.min(100, (rEntropy / 3) * 100);
-    // 7. スケール制限度 (12音階中の使用音数が少ないほど高い。7音階で50%, 5音階で80%目安)
-    const uniquePitches = Object.keys(pitchClassCounts).length;
-    let scaleScore = 0;
-    if (uniquePitches > 0) {
-      scaleScore = Math.max(0, 100 - ((uniquePitches - 1) / 11) * 100); 
-    }
+    // 5. 音程エントロピー 
+    const pEntropyScore = validPitchPatterns > 0 ? (totalPEntropyScore / validPitchPatterns) : 0;
+    // 6. 音価エントロピー 
+    const rEntropyScore = validRhythmPatterns > 0 ? (totalREntropyScore / validRhythmPatterns) : 0;
+    // 7. スケール制限度 
+    const scaleScore = validPitchPatterns > 0 ? (totalScaleScore / validPitchPatterns) : 0;
     // 8. アウフタクト発生率
     const anacrusisRate = group.rhythm.length > 0 ? (anacrusisCount / group.rhythm.length) * 100 : 0;
 
