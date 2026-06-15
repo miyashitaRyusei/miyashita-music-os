@@ -185,8 +185,8 @@ function InsightsPanel({ original, like }) {
 function ContrastPanel({ original, like }) {
   const getJump = (data) => {
     if (!data) return null;
-    if (data['Aメロ'] !== undefined && data['サビ'] !== undefined) {
-      return (data['サビ'] - data['Aメロ']);
+    if (data['Aメロ'] !== undefined && data['Cメロ'] !== undefined) {
+      return (data['Cメロ'] - data['Aメロ']);
     }
     return null;
   };
@@ -199,10 +199,10 @@ function ContrastPanel({ original, like }) {
       <div className="card" style={{ flex: 1, minWidth: '300px' }}>
         <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ArrowsUpDownIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
-          セクション間コントラスト（Aメロ→サビの起伏）
+          セクション間コントラスト（Aメロ→Cメロの起伏）
         </h3>
         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '16px' }}>
-          ※コントラストを分析するには、同じ曲の中で「Aメロ」と「サビ」の両方をストックする必要があります。
+          ※コントラストを分析するには、同じ曲の中で「Aメロ」と「Cメロ(サビ)」の両方をストックする必要があります。
         </p>
       </div>
     );
@@ -217,7 +217,7 @@ function ContrastPanel({ original, like }) {
     <div className="card" style={{ flex: 1, minWidth: '300px' }}>
       <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
         <ArrowsUpDownIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
-        セクション間コントラスト（Aメロ→サビの起伏）
+        セクション間コントラスト（Aメロ→Cメロの起伏）
       </h3>
       
       <div style={{ display: 'flex', gap: '16px' }}>
@@ -231,7 +231,7 @@ function ContrastPanel({ original, like }) {
         </div>
       </div>
       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '12px' }}>
-        ※平均ピッチの差分。サビにかけての「音高の爆発力」を示します。
+        ※平均ピッチの差分。Cメロ(サビ)にかけての「音高の爆発力」を示します。
       </p>
     </div>
   );
