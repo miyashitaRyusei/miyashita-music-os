@@ -219,7 +219,7 @@ export function calculateMetrics({
   chordProgressions.forEach(prog => {
     if (!prog.chords) return;
     prog.chords.forEach(chordObj => {
-      const name = chordObj.chord;
+      const name = typeof chordObj === 'object' ? (chordObj.name || chordObj.chord) : chordObj;
       if (!name) return;
       chordFrequencies[name] = (chordFrequencies[name] || 0) + 1;
       totalChords++;
