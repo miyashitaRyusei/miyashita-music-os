@@ -257,27 +257,32 @@ export default function Workspace() {
     
     const firstNoteTimeSec = Math.min(...selectedNotes.map(n => n.time));
     
-    // notesのJSON化 (フレーズ開始位置を0拍とした相対拍単位)
-    const notesJson = selectedNotes.map(n => ({
-      pitch: n.midi,
-      pitch_name: n.name,
-      start: (n.time - firstNoteTimeSec) / secondsPerBeat,
-      duration: n.duration / secondsPerBeat,
-      velocity: n.velocity,
-      lyric: null
-    }));
+    // notesのJSON化 (フレーズ開始位置を0拍とした相対拍単位・Cメジャー移調済み)
+    const notesJson = selectedNotes.map(n => {
+      const effectiveKey = getEffectiveKeyAtTime(n.time, midiData.measureDuration, parsedChords, stockAttributes.originalKey);
+      const offset = getTransposeOffset(effectiveKey);
+      return {
+        pitch: n.midi - offset,
+        pitch_name: midiToDegreeName(n.midi - offset),
+        start: (n.time - firstNoteTimeSec) / secondsPerBeat,
+        duration: n.duration / secondsPerBeat,
+        velocity: n.velocity,
+        lyric: null
+      };
+    });
 
-    // chordsのJSON化
+    // chordsのJSON化 (Cメジャー移調済み)
     const regionStartSec = selectedRegion.x;
     const regionEndSec = selectedRegion.x + selectedRegion.width;
     const chordsJson = [];
     
-    parsedChords.forEach((m) => {
+    parsedChords.forEach((m, mIndex) => {
       const measureDurationSec = midiData.measureDuration || 2.0;
       const chordsInMeasure = m.chords.length;
       if (chordsInMeasure === 0) return;
       
       const timePerChordSec = measureDurationSec / chordsInMeasure;
+      const effectiveKey = getEffectiveKeyForMeasure(mIndex, parsedChords, stockAttributes.originalKey);
       
       m.chords.forEach((chord, i) => {
         const chordTimeSec = (m.measure - 1) * measureDurationSec + i * timePerChordSec;
@@ -285,10 +290,11 @@ export default function Workspace() {
         
         // 選択リージョン（メロディの範囲）と重なっているコードのみ抽出
         if (chordEndSec > regionStartSec && chordTimeSec < regionEndSec) {
+           const transposedName = transposeChord(chord.name, effectiveKey);
            chordsJson.push({
-              name: chord.name, 
-              root: chord.name.replace(/m|M|7|dim|aug|sus4|b5|add9/g, ''), 
-              quality: chord.name.replace(/^[A-G][#b]?/, '') || 'M',
+              name: transposedName, 
+              root: transposedName.replace(/m|M|7|dim|aug|sus4|b5|add9/g, ''), 
+              quality: transposedName.replace(/^[A-G][#b]?/, '') || 'M',
               start: (chordTimeSec - firstNoteTimeSec) / secondsPerBeat,
               duration: timePerChordSec / secondsPerBeat
            });
@@ -299,7 +305,7 @@ export default function Workspace() {
     const phraseId = `phrase-${Date.now()}`;
     const datasetTypeMap = {
       '自作曲': 'original',
-      '既存曲': stockAttributes.preference === '好き' ? 'like' : 'dislike'
+      'リファレンス': stockAttributes.preference === '好き' ? 'like' : 'dislike'
     };
     const datasetType = datasetTypeMap[stockAttributes.source] || 'original';
     
