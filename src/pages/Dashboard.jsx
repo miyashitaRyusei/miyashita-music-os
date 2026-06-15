@@ -9,6 +9,7 @@ import { HomeIcon, SparklesIcon, CheckCircleIcon, ChevronDownIcon, ChevronRightI
 import useAppStore from '../store/useAppStore';
 import { generateAIPrompt } from '../utils/exportPrompt';
 import { calculateMetrics } from '../utils/metricsCalculator';
+import AdvancedMetricsPanel from '../components/dashboard/AdvancedMetricsPanel';
 
 const COLORS = {
   original: '#facc15', // イエロー系 (自作曲) - 赤と青に重なっても埋もれない色
@@ -396,34 +397,65 @@ function MetricsReferencePanel({
 }
 
 export default function Dashboard() {
-  const { pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, registeredSongs } = useAppStore();
+  const { pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, musicalPhrases, registeredSongs } = useAppStore();
+
+  const [sectionFilter, setSectionFilter] = useState('all');
 
   const { 
     histogramData, radarChartData, sectionData, 
     topChords, nonDiatonicRate, bpmData, topKeys,
-    heatmapData, degreeOrder, totalRelations
+    heatmapData, degreeOrder, totalRelations, advancedMetrics
   } = useMemo(() => {
-    return calculateMetrics({ pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, registeredSongs });
-  }, [pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, registeredSongs]);
+    // フィルタリング処理（musicalPhrasesのみ）
+    const filteredPhrases = sectionFilter === 'all' 
+      ? musicalPhrases 
+      : musicalPhrases.filter(p => p.section === sectionFilter);
+
+    return calculateMetrics({ 
+      pitchPatterns, rhythmPatterns, chordProgressions, 
+      melodyChordRelations, musicalPhrases: filteredPhrases, registeredSongs 
+    });
+  }, [pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, musicalPhrases, registeredSongs, sectionFilter]);
 
   const statsSummary = {
     totalPitchPatterns: pitchPatterns.length,
     totalRhythmPatterns: rhythmPatterns.length,
     totalChordProgressions: chordProgressions.length,
     totalAnalyzed: pitchPatterns.length + rhythmPatterns.length + chordProgressions.length,
+    totalPhrases: musicalPhrases.length
   };
 
   return (
     <div className="page animate-fade-in">
-      <div className="page__header">
-        <h1 className="page__title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <HomeIcon style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
-          ダッシュボード
-        </h1>
-        <p className="page__subtitle">ストックデータの統計比較とAIからの作曲処方箋</p>
+      <div className="page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 className="page__title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <HomeIcon style={{ width: '32px', height: '32px', color: 'var(--accent-blue)' }} />
+            ダッシュボード
+          </h1>
+          <p className="page__subtitle">ストックデータの統計比較とAIからの作曲処方箋</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>分析セクション:</span>
+          <select 
+            className="input" 
+            style={{ padding: '6px 12px', fontSize: '14px', width: 'auto' }}
+            value={sectionFilter}
+            onChange={e => setSectionFilter(e.target.value)}
+          >
+            <option value="all">すべて</option>
+            <option value="Aメロ">Aメロ</option>
+            <option value="Bメロ">Bメロ</option>
+            <option value="サビ">サビ</option>
+            <option value="Cメロ">Cメロ</option>
+          </select>
+        </div>
       </div>
 
       <StatsCards statsSummary={statsSummary} />
+
+      {/* 新しく追加した高度な分析パネル */}
+      {advancedMetrics && <AdvancedMetricsPanel advancedMetrics={advancedMetrics} />}
 
       <div className="grid-2 dashboard-charts" style={{ marginTop: '24px' }}>
         <RadarChartPanel radarChartData={radarChartData} />

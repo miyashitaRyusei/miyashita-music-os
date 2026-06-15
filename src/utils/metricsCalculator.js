@@ -28,13 +28,14 @@ export function calculateMetrics({
   rhythmPatterns = [],
   chordProgressions = [],
   melodyChordRelations = [],
+  musicalPhrases = [],
   registeredSongs = []
 }) {
   // グループ分け（自作曲、好き、嫌い）
   const groups = {
-    original: { pitch: [], rhythm: [] },
-    like: { pitch: [], rhythm: [] },
-    dislike: { pitch: [], rhythm: [] }
+    original: { pitch: [], rhythm: [], phrases: [] },
+    like: { pitch: [], rhythm: [], phrases: [] },
+    dislike: { pitch: [], rhythm: [], phrases: [] }
   };
 
   pitchPatterns.forEach(p => {
@@ -47,6 +48,12 @@ export function calculateMetrics({
     if (r.source === 'original' || r.source === '自作曲') groups.original.rhythm.push(r);
     else if (r.preference === 'like' || r.preference === '好き') groups.like.rhythm.push(r);
     else if (r.preference === 'dislike' || r.preference === '嫌い') groups.dislike.rhythm.push(r);
+  });
+
+  musicalPhrases.forEach(p => {
+    if (p.datasetType === 'original') groups.original.phrases.push(p);
+    else if (p.datasetType === 'like') groups.like.phrases.push(p);
+    else if (p.datasetType === 'dislike') groups.dislike.phrases.push(p);
   });
 
   // ========== ヒストグラム計算 ==========
@@ -298,6 +305,80 @@ export function calculateMetrics({
     return row;
   });
 
+  // ========== 統合フレーズ 高度分析 ==========
+  const intervalNames = {
+    0: 'Root', 1: 'b2', 2: '9th', 3: 'm3', 4: 'M3', 5: '11th', 
+    6: '#11', 7: '5th', 8: 'b13', 9: '13th', 10: 'm7', 11: 'M7'
+  };
+
+  const getRelativeDegree = (noteName, chordRoot) => {
+    const noteVal = degreeToValue(noteName.replace(/\d+$/, '').replace(/[↑↓]/g, '')) % 12;
+    const rootVal = degreeToValue(chordRoot) % 12;
+    const diff = (noteVal - rootVal + 12) % 12;
+    return intervalNames[diff];
+  };
+
+  const advancedMetrics = {
+    original: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, totalNotes: 0, phraseCount: 0 },
+    like: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, totalNotes: 0, phraseCount: 0 },
+    dislike: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, totalNotes: 0, phraseCount: 0 }
+  };
+
+  const processPhrases = (groupPhrases, type) => {
+    groupPhrases.forEach(phrase => {
+      advancedMetrics[type].phraseCount++;
+      const { notes, chords } = phrase;
+      if (!notes || notes.length === 0) return;
+
+      // 最高音分析 (Climax) - 最も高いMIDIノートを取得
+      const highestNote = notes.reduce((prev, curr) => (prev.pitch > curr.pitch) ? prev : curr);
+      const climaxDeg = highestNote.pitch_name.replace(/\d+$/, '');
+      advancedMetrics[type].climaxDegree[climaxDeg] = (advancedMetrics[type].climaxDegree[climaxDeg] || 0) + 1;
+
+      // 終止音分析 (Cadence) - 最後のノート
+      const lastNote = notes[notes.length - 1];
+      const cadenceDeg = lastNote.pitch_name.replace(/\d+$/, '');
+      advancedMetrics[type].cadenceDegree[cadenceDeg] = (advancedMetrics[type].cadenceDegree[cadenceDeg] || 0) + 1;
+
+      // メロディ×コード相対度数分析
+      notes.forEach(note => {
+         advancedMetrics[type].totalNotes++;
+         const noteEnd = note.start + note.duration;
+         const noteName = note.pitch_name.replace(/\d+$/, '');
+         
+         const overlappingChords = (chords || []).filter(c => {
+            const chordEnd = c.start + c.duration;
+            return c.start < noteEnd && chordEnd > note.start;
+         });
+         
+         if (overlappingChords.length > 0) {
+           // 最も長く重なっているコードを主コードとする
+           let primaryChord = overlappingChords[0];
+           let maxOverlap = 0;
+           overlappingChords.forEach(c => {
+             const chordEnd = c.start + c.duration;
+             const overlapStart = Math.max(note.start, c.start);
+             const overlapEnd = Math.min(noteEnd, chordEnd);
+             const overlapDuration = overlapEnd - overlapStart;
+             if (overlapDuration > maxOverlap) {
+               maxOverlap = overlapDuration;
+               primaryChord = c;
+             }
+           });
+           
+           if (primaryChord && primaryChord.root) {
+             const relDegree = getRelativeDegree(noteName, primaryChord.root);
+             advancedMetrics[type].melodyChordDegrees[relDegree] = (advancedMetrics[type].melodyChordDegrees[relDegree] || 0) + 1;
+           }
+         }
+      });
+    });
+  };
+
+  processPhrases(groups.original.phrases, 'original');
+  processPhrases(groups.like.phrases, 'like');
+  processPhrases(groups.dislike.phrases, 'dislike');
+
   return {
     histogramData,
     radarChartData,
@@ -307,6 +388,7 @@ export function calculateMetrics({
     bpmData,
     topKeys,
     heatmapData,
+    advancedMetrics,
     degreeOrder,
     chordTypesOrder,
     totalRelations
