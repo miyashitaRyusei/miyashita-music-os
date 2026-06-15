@@ -14,6 +14,8 @@ export default function Workspace() {
     parsedChords,
     extractedPitch,
     extractedRhythm,
+    selectedNotes,
+    selectedRegion,
     addPitchPattern,
     addRhythmPattern,
     addChordProgression,
@@ -232,6 +234,97 @@ export default function Workspace() {
     }
   };
 
+  const handleStockMusicalPhrase = () => {
+    if (parsedChords.length === 0) {
+      showToast('コードを入力してください');
+      return;
+    }
+    if (!midiData || !midiData.notes || midiData.notes.length === 0) {
+      showToast('ピアノロールにMIDIを読み込んでください');
+      return;
+    }
+    if (!selectedNotes || selectedNotes.length === 0) {
+      showToast('ストックしたいメロディの範囲を選択してください');
+      return;
+    }
+
+    const song = registeredSongs.find(s => s.id === activeSongId);
+    const songTitle = song ? song.title : (midiData.name || '未設定楽曲');
+    
+    // BPMによる拍の計算 (1拍あたりの秒数)
+    const tempo = midiData.tempo || 120;
+    const secondsPerBeat = 60 / tempo;
+    
+    const firstNoteTimeSec = Math.min(...selectedNotes.map(n => n.time));
+    
+    // notesのJSON化 (フレーズ開始位置を0拍とした相対拍単位)
+    const notesJson = selectedNotes.map(n => ({
+      pitch: n.midi,
+      pitch_name: n.name,
+      start: (n.time - firstNoteTimeSec) / secondsPerBeat,
+      duration: n.duration / secondsPerBeat,
+      velocity: n.velocity,
+      lyric: null
+    }));
+
+    // chordsのJSON化
+    const regionStartSec = selectedRegion.x;
+    const regionEndSec = selectedRegion.x + selectedRegion.width;
+    const chordsJson = [];
+    
+    parsedChords.forEach((m) => {
+      const measureDurationSec = midiData.measureDuration || 2.0;
+      const chordsInMeasure = m.chords.length;
+      if (chordsInMeasure === 0) return;
+      
+      const timePerChordSec = measureDurationSec / chordsInMeasure;
+      
+      m.chords.forEach((chord, i) => {
+        const chordTimeSec = (m.measure - 1) * measureDurationSec + i * timePerChordSec;
+        const chordEndSec = chordTimeSec + timePerChordSec;
+        
+        // 選択リージョン（メロディの範囲）と重なっているコードのみ抽出
+        if (chordEndSec > regionStartSec && chordTimeSec < regionEndSec) {
+           chordsJson.push({
+              name: chord.name, 
+              root: chord.name.replace(/m|M|7|dim|aug|sus4|b5|add9/g, ''), 
+              quality: chord.name.replace(/^[A-G][#b]?/, '') || 'M',
+              start: (chordTimeSec - firstNoteTimeSec) / secondsPerBeat,
+              duration: timePerChordSec / secondsPerBeat
+           });
+        }
+      });
+    });
+
+    const phraseId = `phrase-${Date.now()}`;
+    const datasetTypeMap = {
+      '自作曲': 'original',
+      '既存曲': stockAttributes.preference === '好き' ? 'like' : 'dislike'
+    };
+    const datasetType = datasetTypeMap[stockAttributes.source] || 'original';
+    
+    useAppStore.getState().addMusicalPhrase({
+      id: phraseId,
+      songId: activeSongId,
+      songTitle: songTitle,
+      artist: song?.artist || '',
+      datasetType: datasetType,
+      section: stockAttributes.section,
+      key: stockAttributes.originalKey,
+      bpm: tempo,
+      meter: midiData.timeSignature ? `${midiData.timeSignature.numerator}/${midiData.timeSignature.denominator}` : '4/4',
+      startBeat: firstNoteTimeSec / secondsPerBeat,
+      startBar: Math.floor(firstNoteTimeSec / (midiData.measureDuration || 2.0)) + 1,
+      notes: notesJson,
+      chords: chordsJson
+    });
+
+    // 既存の辞書機能への登録も同時に行う
+    handleStockPitchAndRhythm();
+    
+    showToast('👑 統合フレーズとして分析データベースに保存しました！');
+  };
+
   return (
     <div className="page-full animate-fade-in">
       <div className="page__header">
@@ -294,13 +387,25 @@ export default function Workspace() {
 
             {/* アクションボタン群 */}
             <div className="workspace-sidebar-actions" style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleStockPitchAndRhythm}>
-                ♫ ピッチ＆リズムをストック
+              <button 
+                className="btn btn--primary" 
+                style={{ width: '100%', justifyContent: 'center', padding: '16px 0', fontSize: '15px', fontWeight: 'bold', background: 'linear-gradient(135deg, var(--accent-orange), var(--accent-red))' }} 
+                onClick={handleStockMusicalPhrase}
+              >
+                👑 統合フレーズとしてストック
               </button>
-              <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleStockChord}>
-                🎹 選択コード進行をストック
-              </button>
-              <div style={{ height: '1px', background: 'var(--border-default)', margin: '8px 0' }} />
+              
+              <div style={{ height: '1px', background: 'var(--border-default)', margin: '16px 0' }} />
+              
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>▼ 個別ストック（旧方式） ▼</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn--secondary" style={{ flex: 1, justifyContent: 'center', fontSize: '12px' }} onClick={handleStockPitchAndRhythm}>
+                  ♫ ピッチ＆リズム
+                </button>
+                <button className="btn btn--secondary" style={{ flex: 1, justifyContent: 'center', fontSize: '12px' }} onClick={handleStockChord}>
+                  🎹 選択コード
+                </button>
+              </div>
               <button className="btn btn--secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '12px' }} onClick={handleStockMelodyChordRelations}>
                 ♫ メロディ×コード関係を一括抽出
               </button>
