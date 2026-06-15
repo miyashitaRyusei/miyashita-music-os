@@ -237,17 +237,19 @@ function ContrastPanel({ original, like }) {
   );
 }
 
-export default function AdvancedMetricsPanel({ advancedMetrics }) {
+export default function AdvancedMetricsPanel({ advancedMetrics, unfilteredAdvancedMetrics }) {
   if (!advancedMetrics) return null;
 
   const { original, like, dislike } = advancedMetrics;
+  const unfilteredOrig = unfilteredAdvancedMetrics ? unfilteredAdvancedMetrics.original : original;
+  const unfilteredLike = unfilteredAdvancedMetrics ? unfilteredAdvancedMetrics.like : like;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
       <InsightsPanel original={original} like={like} />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
-        <ContrastPanel original={original} like={like} />
+        <ContrastPanel original={unfilteredOrig} like={unfilteredLike} />
         <RankingList 
           title="リズム配置・重心 (Syncopation)" 
           icon={MusicalNoteIcon} 

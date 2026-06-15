@@ -409,13 +409,23 @@ export default function Dashboard() {
     // フィルタリング処理（musicalPhrasesのみ）
     const filteredPhrases = sectionFilter === 'all' 
       ? musicalPhrases 
-      : musicalPhrases.filter(p => p.section === sectionFilter);
+      : musicalPhrases.filter(p => p.sections && p.sections.includes(sectionFilter));
 
     return calculateMetrics({ 
       pitchPatterns, rhythmPatterns, chordProgressions, 
       melodyChordRelations, musicalPhrases: filteredPhrases, registeredSongs 
     });
   }, [pitchPatterns, rhythmPatterns, chordProgressions, melodyChordRelations, musicalPhrases, registeredSongs, sectionFilter]);
+
+  // コントラスト分析は「AメロとCメロの両方」が必要なため、常にフィルタリング前のデータを使用する
+  const unfilteredAdvancedMetrics = useMemo(() => {
+    if (sectionFilter === 'all') return advancedMetrics;
+    const res = calculateMetrics({ 
+      pitchPatterns: [], rhythmPatterns: [], chordProgressions: [], 
+      melodyChordRelations: [], musicalPhrases, registeredSongs 
+    });
+    return res.advancedMetrics;
+  }, [musicalPhrases, registeredSongs, sectionFilter, advancedMetrics]);
 
   const statsSummary = {
     totalPitchPatterns: pitchPatterns.length,
@@ -454,8 +464,8 @@ export default function Dashboard() {
 
       <StatsCards statsSummary={statsSummary} />
 
-      {/* 新しく追加した高度な分析パネル */}
-      {advancedMetrics && <AdvancedMetricsPanel advancedMetrics={advancedMetrics} />}
+      {/* 👑 統合フレーズの高度な分析パネル */}
+      <AdvancedMetricsPanel advancedMetrics={advancedMetrics} unfilteredAdvancedMetrics={unfilteredAdvancedMetrics} />
 
       <div className="grid-2 dashboard-charts" style={{ marginTop: '24px' }}>
         <RadarChartPanel radarChartData={radarChartData} />
