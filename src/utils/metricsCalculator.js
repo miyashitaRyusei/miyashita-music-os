@@ -322,9 +322,9 @@ export function calculateMetrics({
   };
 
   const advancedMetrics = {
-    original: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, totalNotes: 0, phraseCount: 0 },
-    like: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, totalNotes: 0, phraseCount: 0 },
-    dislike: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, totalNotes: 0, phraseCount: 0 }
+    original: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, rhythmPositions: {}, sectionPitch: {}, totalNotes: 0, phraseCount: 0 },
+    like: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, rhythmPositions: {}, sectionPitch: {}, totalNotes: 0, phraseCount: 0 },
+    dislike: { climaxDegree: {}, cadenceDegree: {}, melodyChordDegrees: {}, rhythmPositions: {}, sectionPitch: {}, totalNotes: 0, phraseCount: 0 }
   };
 
   const processPhrases = (groupPhrases, type) => {
@@ -343,9 +343,38 @@ export function calculateMetrics({
       const cadenceDeg = lastNote.pitch_name.replace(/\d+$/, '').replace(/[↑↓]/g, '');
       advancedMetrics[type].cadenceDegree[cadenceDeg] = (advancedMetrics[type].cadenceDegree[cadenceDeg] || 0) + 1;
 
-      // メロディ×コード相対度数分析
+      // セクション間コントラスト分析 (平均ピッチの集計)
+      if (phrase.sections && phrase.sections.length > 0) {
+        const sectionName = phrase.sections[0].replace('_', ' ');
+        if (!advancedMetrics[type].sectionPitch[sectionName]) {
+          advancedMetrics[type].sectionPitch[sectionName] = { totalPitch: 0, count: 0 };
+        }
+        notes.forEach(n => {
+          advancedMetrics[type].sectionPitch[sectionName].totalPitch += n.pitch;
+          advancedMetrics[type].sectionPitch[sectionName].count++;
+        });
+      }
+
+      // メロディ×コード相対度数 ＆ リズム重心分析
+      const startBeat = phrase.startBeat || 0; 
+
       notes.forEach(note => {
          advancedMetrics[type].totalNotes++;
+
+         // リズム重心分析 (ノートの発音位置を4拍子内で分類)
+         // startBeatは絶対拍、note.startはフレーズ先頭からの相対拍
+         // 誤差を吸収するために少し丸める
+         const absoluteBeat = startBeat + note.start;
+         const positionInMeasure = Math.round((absoluteBeat % 4) * 100) / 100;
+         
+         let beatType = 'シンコペーション/16分';
+         if (positionInMeasure % 1 === 0) {
+           beatType = (positionInMeasure === 0 || positionInMeasure === 2) ? '強拍 (1,3拍目)' : '弱拍 (2,4拍目)';
+         } else if (positionInMeasure % 0.5 === 0) {
+           beatType = '裏拍 (8分ウラ)';
+         }
+         advancedMetrics[type].rhythmPositions[beatType] = (advancedMetrics[type].rhythmPositions[beatType] || 0) + 1;
+
          const noteEnd = note.start + note.duration;
          const noteName = note.pitch_name.replace(/\d+$/, '').replace(/[↑↓]/g, '');
          
@@ -381,6 +410,20 @@ export function calculateMetrics({
   processPhrases(groups.original.phrases, 'original');
   processPhrases(groups.like.phrases, 'like');
   processPhrases(groups.dislike.phrases, 'dislike');
+
+  const finalizeSectionPitch = (type) => {
+    const sectionAvgPitch = {};
+    Object.keys(advancedMetrics[type].sectionPitch).forEach(sec => {
+      const data = advancedMetrics[type].sectionPitch[sec];
+      if (data.count > 0) {
+        sectionAvgPitch[sec] = data.totalPitch / data.count;
+      }
+    });
+    advancedMetrics[type].sectionPitch = sectionAvgPitch;
+  };
+  finalizeSectionPitch('original');
+  finalizeSectionPitch('like');
+  finalizeSectionPitch('dislike');
 
   return {
     histogramData,

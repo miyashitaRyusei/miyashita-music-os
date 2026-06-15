@@ -1,4 +1,4 @@
-import { SparklesIcon, FireIcon, HandRaisedIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon, FireIcon, HandRaisedIcon, ArrowsUpDownIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 
 const COLORS = {
   original: '#facc15', // 自作曲
@@ -73,6 +73,38 @@ function RankingList({ title, icon: Icon, original, like, dislike }) {
   );
 }
 
+const DiffTable = ({ items, type }) => {
+  if (items.length === 0) {
+    return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '16px' }}>特筆すべき差分は見つかりませんでした。</p>;
+  }
+  return (
+    <table style={{ width: '100%', fontSize: '13px', textAlign: 'left', borderCollapse: 'collapse', marginTop: '8px' }}>
+      <thead>
+        <tr style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+          <th style={{ padding: '8px', fontWeight: 'normal' }}>カテゴリ</th>
+          <th style={{ padding: '8px', fontWeight: 'normal' }}>要素</th>
+          <th style={{ padding: '8px', fontWeight: 'normal' }}>自作曲</th>
+          <th style={{ padding: '8px', fontWeight: 'normal' }}>好きな曲</th>
+          <th style={{ padding: '8px', fontWeight: 'normal' }}>差分</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((h, i) => (
+          <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <td style={{ padding: '8px' }}>{h.category}</td>
+            <td style={{ padding: '8px', fontWeight: 'bold' }}>{h.item}</td>
+            <td style={{ padding: '8px', color: COLORS.original }}>{h.original}%</td>
+            <td style={{ padding: '8px', color: COLORS.like }}>{h.like}%</td>
+            <td style={{ padding: '8px', color: type === 'habit' ? 'var(--accent-red)' : 'var(--accent-green)', fontWeight: 'bold' }}>
+              {h.diff > 0 ? '+' : ''}{h.diff}%
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
 function InsightsPanel({ original, like }) {
   const getPercentages = (countsObj) => {
     const total = Object.values(countsObj).reduce((sum, c) => sum + c, 0);
@@ -100,9 +132,10 @@ function InsightsPanel({ original, like }) {
 
   const climaxDiffs = calculateDiffs(original.climaxDegree, like.climaxDegree, '最高音');
   const cadenceDiffs = calculateDiffs(original.cadenceDegree, like.cadenceDegree, '終止音');
-  const relDiffs = calculateDiffs(original.melodyChordDegrees, like.melodyChordDegrees, 'メロディ×コード');
+  const relDiffs = calculateDiffs(original.melodyChordDegrees, like.melodyChordDegrees, 'メロ×コード');
+  const rhythmDiffs = calculateDiffs(original.rhythmPositions, like.rhythmPositions, 'リズム配置');
 
-  const allDiffs = [...climaxDiffs, ...cadenceDiffs, ...relDiffs];
+  const allDiffs = [...climaxDiffs, ...cadenceDiffs, ...relDiffs, ...rhythmDiffs];
 
   // 手癖: 自作曲の方が圧倒的に多いもの (Original > Like)
   const habits = allDiffs
@@ -118,37 +151,7 @@ function InsightsPanel({ original, like }) {
 
   if (habits.length === 0 && improvements.length === 0) return null;
 
-  const DiffTable = ({ items, type }) => {
-    if (items.length === 0) {
-      return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '16px' }}>特筆すべき差分は見つかりませんでした。</p>;
-    }
-    return (
-      <table style={{ width: '100%', fontSize: '13px', textAlign: 'left', borderCollapse: 'collapse', marginTop: '8px' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-            <th style={{ padding: '8px', fontWeight: 'normal' }}>カテゴリ</th>
-            <th style={{ padding: '8px', fontWeight: 'normal' }}>要素</th>
-            <th style={{ padding: '8px', fontWeight: 'normal' }}>自作曲</th>
-            <th style={{ padding: '8px', fontWeight: 'normal' }}>好きな曲</th>
-            <th style={{ padding: '8px', fontWeight: 'normal' }}>差分</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((h, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-              <td style={{ padding: '8px' }}>{h.category}</td>
-              <td style={{ padding: '8px', fontWeight: 'bold' }}>{h.item}</td>
-              <td style={{ padding: '8px', color: COLORS.original }}>{h.original}%</td>
-              <td style={{ padding: '8px', color: COLORS.like }}>{h.like}%</td>
-              <td style={{ padding: '8px', color: type === 'habit' ? 'var(--accent-red)' : 'var(--accent-green)', fontWeight: 'bold' }}>
-                {h.diff > 0 ? '+' : ''}{h.diff}%
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  };
+  if (habits.length === 0 && improvements.length === 0) return null;
 
   return (
     <div className="card" style={{ borderLeft: '4px solid var(--accent-orange)' }}>
@@ -179,6 +182,61 @@ function InsightsPanel({ original, like }) {
   );
 }
 
+function ContrastPanel({ original, like }) {
+  const getJump = (data) => {
+    if (!data) return null;
+    if (data['Aメロ'] !== undefined && data['サビ'] !== undefined) {
+      return (data['サビ'] - data['Aメロ']);
+    }
+    return null;
+  };
+
+  const origJump = getJump(original.sectionPitch);
+  const likeJump = getJump(like.sectionPitch);
+
+  if (origJump === null && likeJump === null) {
+    return (
+      <div className="card" style={{ flex: 1, minWidth: '300px' }}>
+        <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ArrowsUpDownIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
+          セクション間コントラスト（Aメロ→サビの起伏）
+        </h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '16px' }}>
+          ※コントラストを分析するには、同じ曲の中で「Aメロ」と「サビ」の両方をストックする必要があります。
+        </p>
+      </div>
+    );
+  }
+
+  const formatJump = (val) => {
+    if (val === null || isNaN(val)) return '-';
+    return (val > 0 ? '+' : '') + val.toFixed(1) + ' 半音';
+  };
+
+  return (
+    <div className="card" style={{ flex: 1, minWidth: '300px' }}>
+      <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        <ArrowsUpDownIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
+        セクション間コントラスト（Aメロ→サビの起伏）
+      </h3>
+      
+      <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '13px', color: COLORS.original, fontWeight: 'bold' }}>自作曲の跳躍幅</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '8px' }}>{formatJump(origJump)}</div>
+        </div>
+        <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '13px', color: COLORS.like, fontWeight: 'bold' }}>好きな曲の跳躍幅</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '8px' }}>{formatJump(likeJump)}</div>
+        </div>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '12px' }}>
+        ※平均ピッチの差分。サビにかけての「音高の爆発力」を示します。
+      </p>
+    </div>
+  );
+}
+
 export default function AdvancedMetricsPanel({ advancedMetrics }) {
   if (!advancedMetrics) return null;
 
@@ -187,6 +245,17 @@ export default function AdvancedMetricsPanel({ advancedMetrics }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
       <InsightsPanel original={original} like={like} />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
+        <ContrastPanel original={original} like={like} />
+        <RankingList 
+          title="リズム配置・重心 (Syncopation)" 
+          icon={MusicalNoteIcon} 
+          original={original.rhythmPositions} 
+          like={like.rhythmPositions} 
+          dislike={dislike.rhythmPositions} 
+        />
+      </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
         <RankingList 
