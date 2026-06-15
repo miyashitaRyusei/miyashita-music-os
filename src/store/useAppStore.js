@@ -23,7 +23,8 @@ const useAppStore = create((set, get) => ({
         { data: rhythms },
         { data: chords },
         { data: melodyChords },
-        { data: generatedMelodies }
+        { data: generatedMelodies },
+        { data: musicalPhrases }
       ] = await Promise.all([
         supabase.from('songs').select('*').order('imported_at', { ascending: false }),
         supabase.from('pitch_patterns').select('*').order('created_at', { ascending: false }),
@@ -31,6 +32,7 @@ const useAppStore = create((set, get) => ({
         supabase.from('chord_progressions').select('*').order('created_at', { ascending: false }),
         supabase.from('melody_chord_relations').select('*').order('created_at', { ascending: false }),
         supabase.from('generated_melodies').select('*').order('created_at', { ascending: false }),
+        supabase.from('musical_phrases').select('*').order('created_at', { ascending: false }),
       ]);
 
       set({
@@ -48,6 +50,7 @@ const useAppStore = create((set, get) => ({
         chordProgressions: (chords || []).map(c => ({ ...c, songId: c.song_id })),
         melodyChordRelations: (melodyChords || []).map(m => ({ ...m, songId: m.song_id, melodyDegree: m.melody_degree, chordName: m.chord_name })),
         generatedMelodies: generatedMelodies || [],
+        musicalPhrases: (musicalPhrases || []).map(p => ({ ...p, songId: p.song_id, startBeat: p.start_beat, startBar: p.start_bar, datasetType: p.dataset_type })),
       });
     } catch (err) {
       console.error('Error fetching data from Supabase:', err);
@@ -298,6 +301,13 @@ const useAppStore = create((set, get) => ({
     const existing = state.pitchPatterns.find((p) => (p.degrees || []).join(',') === key);
 
     if (existing) {
+      // 再ストック時の重複防止: 同じ曲の同じセクションから既にストックされているか確認
+      const isDuplicate = existing.history?.some(h => h.song_id === pattern.songId && h.section === pattern.section);
+      if (isDuplicate) {
+        console.log('Pitch pattern duplication prevented.');
+        return; // カウントを増やさず終了
+      }
+
       const newCount = (existing.count || 1) + 1;
       const historyItem = {
         song_id: pattern.songId,
@@ -391,6 +401,13 @@ const useAppStore = create((set, get) => ({
     const existing = state.rhythmPatterns.find((p) => getRhythmKey(p.timings) === key);
 
     if (existing) {
+      // 再ストック時の重複防止
+      const isDuplicate = existing.history?.some(h => h.song_id === pattern.songId && h.section === pattern.section);
+      if (isDuplicate) {
+        console.log('Rhythm pattern duplication prevented.');
+        return; // カウントを増やさず終了
+      }
+
       const newCount = (existing.count || 1) + 1;
       const historyItem = {
         song_id: pattern.songId,
@@ -599,6 +616,50 @@ const useAppStore = create((set, get) => ({
     const { error } = await supabase.from('generated_melodies').delete().eq('id', id);
     if (!error) {
       set((state) => ({ generatedMelodies: state.generatedMelodies.filter((m) => m.id !== id) }));
+    }
+  },
+
+  // ============================================
+  // Musical Phrases (統合フレーズ分析用)
+  // ============================================
+  musicalPhrases: [],
+  addMusicalPhrase: async (phrase) => {
+    const state = get();
+    const song = state.registeredSongs.find(s => s.id === phrase.songId);
+    const dbPhrase = {
+      song_id: phrase.songId,
+      song_title: phrase.songTitle || song?.title || '不明な楽曲',
+      artist: phrase.artist || song?.artist || '',
+      dataset_type: phrase.datasetType || 'original', // 'original', 'like', 'dislike'
+      section: phrase.section,
+      key: phrase.key,
+      bpm: phrase.bpm,
+      meter: phrase.meter || '4/4',
+      start_beat: phrase.startBeat,
+      start_bar: phrase.startBar,
+      notes: phrase.notes || [],
+      chords: phrase.chords || []
+    };
+
+    const { data, error } = await supabase.from('musical_phrases').insert([dbPhrase]).select().single();
+    if (!error && data) {
+      set((state) => ({ 
+        musicalPhrases: [{
+          ...data,
+          songId: data.song_id,
+          startBeat: data.start_beat,
+          startBar: data.start_bar,
+          datasetType: data.dataset_type
+        }, ...state.musicalPhrases] 
+      }));
+    } else {
+      console.error('Failed to add musical phrase:', error);
+    }
+  },
+  removeMusicalPhrase: async (id) => {
+    const { error } = await supabase.from('musical_phrases').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ musicalPhrases: state.musicalPhrases.filter((p) => p.id !== id) }));
     }
   },
 
