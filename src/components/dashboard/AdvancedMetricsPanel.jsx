@@ -118,6 +118,38 @@ function InsightsPanel({ original, like }) {
 
   if (habits.length === 0 && improvements.length === 0) return null;
 
+  const DiffTable = ({ items, type }) => {
+    if (items.length === 0) {
+      return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '16px' }}>特筆すべき差分は見つかりませんでした。</p>;
+    }
+    return (
+      <table style={{ width: '100%', fontSize: '13px', textAlign: 'left', borderCollapse: 'collapse', marginTop: '8px' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+            <th style={{ padding: '8px', fontWeight: 'normal' }}>カテゴリ</th>
+            <th style={{ padding: '8px', fontWeight: 'normal' }}>要素</th>
+            <th style={{ padding: '8px', fontWeight: 'normal' }}>自作曲</th>
+            <th style={{ padding: '8px', fontWeight: 'normal' }}>好きな曲</th>
+            <th style={{ padding: '8px', fontWeight: 'normal' }}>差分</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((h, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <td style={{ padding: '8px' }}>{h.category}</td>
+              <td style={{ padding: '8px', fontWeight: 'bold' }}>{h.item}</td>
+              <td style={{ padding: '8px', color: COLORS.original }}>{h.original}%</td>
+              <td style={{ padding: '8px', color: COLORS.like }}>{h.like}%</td>
+              <td style={{ padding: '8px', color: type === 'habit' ? 'var(--accent-red)' : 'var(--accent-green)', fontWeight: 'bold' }}>
+                {h.diff > 0 ? '+' : ''}{h.diff}%
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
   return (
     <div className="card" style={{ borderLeft: '4px solid var(--accent-orange)' }}>
       <div className="card__header">
@@ -129,40 +161,18 @@ function InsightsPanel({ original, like }) {
       </div>
 
       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginTop: '16px' }}>
-        <div style={{ flex: 1, minWidth: '250px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: COLORS.original, marginBottom: '12px' }}>
+        <div style={{ flex: 1, minWidth: '300px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: COLORS.original, marginBottom: '8px' }}>
             ⚠️ あなたの手癖（自作曲に多すぎる要素）
           </h4>
-          {habits.length > 0 ? (
-            <ul style={{ paddingLeft: '20px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {habits.map((h, i) => (
-                <li key={i}>
-                  <strong>【{h.category}】 {h.item}</strong><br/>
-                  <span style={{ color: 'var(--text-secondary)' }}>
-                    自作曲では {h.original}% も使われていますが、好きな曲では {h.like}% しか使われていません。少し減らしてみると良いかもしれません！
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>特に目立った手癖は見つかりませんでした。</p>}
+          <DiffTable items={habits} type="habit" />
         </div>
 
-        <div style={{ flex: 1, minWidth: '250px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: COLORS.like, marginBottom: '12px' }}>
+        <div style={{ flex: 1, minWidth: '300px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: COLORS.like, marginBottom: '8px' }}>
             💡 改善のヒント（好きな曲がよく使う要素）
           </h4>
-          {improvements.length > 0 ? (
-            <ul style={{ paddingLeft: '20px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {improvements.map((h, i) => (
-                <li key={i}>
-                  <strong>【{h.category}】 {h.item}</strong><br/>
-                  <span style={{ color: 'var(--text-secondary)' }}>
-                    好きな曲では {h.like}% 使われていますが、自作曲では {h.original}% しか使われていません。意識して取り入れてみましょう！
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>現状、好きな曲との大きな差分は見つかりませんでした。</p>}
+          <DiffTable items={improvements} type="improvement" />
         </div>
       </div>
     </div>
