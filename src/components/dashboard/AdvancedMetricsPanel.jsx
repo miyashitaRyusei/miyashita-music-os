@@ -73,34 +73,134 @@ function RankingList({ title, icon: Icon, original, like, dislike }) {
   );
 }
 
+function InsightsPanel({ original, like }) {
+  const getPercentages = (countsObj) => {
+    const total = Object.values(countsObj).reduce((sum, c) => sum + c, 0);
+    if (total === 0) return {};
+    const pct = {};
+    for (const [k, v] of Object.entries(countsObj)) {
+      pct[k] = (v / total) * 100;
+    }
+    return pct;
+  };
+
+  const calculateDiffs = (origCounts, likeCounts, categoryName) => {
+    const origPct = getPercentages(origCounts);
+    const likePct = getPercentages(likeCounts);
+    const allKeys = new Set([...Object.keys(origPct), ...Object.keys(likePct)]);
+    
+    const diffs = [];
+    allKeys.forEach(k => {
+      const o = origPct[k] || 0;
+      const l = likePct[k] || 0;
+      diffs.push({ item: k, original: Math.round(o), like: Math.round(l), diff: Math.round(l - o), category: categoryName });
+    });
+    return diffs;
+  };
+
+  const climaxDiffs = calculateDiffs(original.climaxDegree, like.climaxDegree, '最高音');
+  const cadenceDiffs = calculateDiffs(original.cadenceDegree, like.cadenceDegree, '終止音');
+  const relDiffs = calculateDiffs(original.melodyChordDegrees, like.melodyChordDegrees, 'メロディ×コード');
+
+  const allDiffs = [...climaxDiffs, ...cadenceDiffs, ...relDiffs];
+
+  // 手癖: 自作曲の方が圧倒的に多いもの (Original > Like)
+  const habits = allDiffs
+    .filter(d => d.diff < -5)
+    .sort((a, b) => a.diff - b.diff)
+    .slice(0, 3);
+
+  // 改善ポイント: 好きな曲の方が圧倒的に多いもの (Like > Original)
+  const improvements = allDiffs
+    .filter(d => d.diff > 5)
+    .sort((a, b) => b.diff - a.diff)
+    .slice(0, 3);
+
+  if (habits.length === 0 && improvements.length === 0) return null;
+
+  return (
+    <div className="card" style={{ borderLeft: '4px solid var(--accent-orange)' }}>
+      <div className="card__header">
+        <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SparklesIcon style={{ width: '20px', height: '20px', color: 'var(--accent-orange)' }} />
+          AI分析インサイト：あなたの「手癖」と「差分」
+        </h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>自作曲と好きな曲の構造を比較して、無意識の癖や取り入れるべき要素を抽出しました。</p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginTop: '16px' }}>
+        <div style={{ flex: 1, minWidth: '250px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: COLORS.original, marginBottom: '12px' }}>
+            ⚠️ あなたの手癖（自作曲に多すぎる要素）
+          </h4>
+          {habits.length > 0 ? (
+            <ul style={{ paddingLeft: '20px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {habits.map((h, i) => (
+                <li key={i}>
+                  <strong>【{h.category}】 {h.item}</strong><br/>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    自作曲では {h.original}% も使われていますが、好きな曲では {h.like}% しか使われていません。少し減らしてみると良いかもしれません！
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>特に目立った手癖は見つかりませんでした。</p>}
+        </div>
+
+        <div style={{ flex: 1, minWidth: '250px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: COLORS.like, marginBottom: '12px' }}>
+            💡 改善のヒント（好きな曲がよく使う要素）
+          </h4>
+          {improvements.length > 0 ? (
+            <ul style={{ paddingLeft: '20px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {improvements.map((h, i) => (
+                <li key={i}>
+                  <strong>【{h.category}】 {h.item}</strong><br/>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    好きな曲では {h.like}% 使われていますが、自作曲では {h.original}% しか使われていません。意識して取り入れてみましょう！
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>現状、好きな曲との大きな差分は見つかりませんでした。</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdvancedMetricsPanel({ advancedMetrics }) {
   if (!advancedMetrics) return null;
 
   const { original, like, dislike } = advancedMetrics;
 
   return (
-    <div style={{ marginTop: '24px', display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
-      <RankingList 
-        title="最高音 (Climax) ランキング" 
-        icon={FireIcon} 
-        original={original.climaxDegree} 
-        like={like.climaxDegree} 
-        dislike={dislike.climaxDegree} 
-      />
-      <RankingList 
-        title="終止音 (Cadence) ランキング" 
-        icon={HandRaisedIcon} 
-        original={original.cadenceDegree} 
-        like={like.cadenceDegree} 
-        dislike={dislike.cadenceDegree} 
-      />
-      <RankingList 
-        title="メロディ×コード相対度数" 
-        icon={SparklesIcon} 
-        original={original.melodyChordDegrees} 
-        like={like.melodyChordDegrees} 
-        dislike={dislike.melodyChordDegrees} 
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+      <InsightsPanel original={original} like={like} />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
+        <RankingList 
+          title="最高音 (Climax) ランキング" 
+          icon={FireIcon} 
+          original={original.climaxDegree} 
+          like={like.climaxDegree} 
+          dislike={dislike.climaxDegree} 
+        />
+        <RankingList 
+          title="終止音 (Cadence) ランキング" 
+          icon={HandRaisedIcon} 
+          original={original.cadenceDegree} 
+          like={like.cadenceDegree} 
+          dislike={dislike.cadenceDegree} 
+        />
+        <RankingList 
+          title="メロディ×コード相対度数" 
+          icon={SparklesIcon} 
+          original={original.melodyChordDegrees} 
+          like={like.melodyChordDegrees} 
+          dislike={dislike.melodyChordDegrees} 
+        />
+      </div>
     </div>
   );
 }
