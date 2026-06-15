@@ -409,7 +409,7 @@ export default function Dashboard() {
     // フィルタリング処理（musicalPhrasesのみ）
     const filteredPhrases = sectionFilter === 'all' 
       ? musicalPhrases 
-      : musicalPhrases.filter(p => p.sections && p.sections.includes(sectionFilter));
+      : musicalPhrases.filter(p => p.section === sectionFilter);
 
     return calculateMetrics({ 
       pitchPatterns, rhythmPatterns, chordProgressions, 

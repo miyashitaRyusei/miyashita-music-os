@@ -344,8 +344,8 @@ export function calculateMetrics({
       advancedMetrics[type].cadenceDegree[cadenceDeg] = (advancedMetrics[type].cadenceDegree[cadenceDeg] || 0) + 1;
 
       // セクション間コントラスト分析 (平均ピッチの集計)
-      if (phrase.sections && phrase.sections.length > 0) {
-        const sectionName = phrase.sections[0].replace('_', ' ');
+      if (phrase.section) {
+        const sectionName = phrase.section.replace('_', ' ');
         if (!advancedMetrics[type].sectionPitch[sectionName]) {
           advancedMetrics[type].sectionPitch[sectionName] = { totalPitch: 0, count: 0 };
         }
