@@ -272,8 +272,8 @@ export default function Workspace() {
     });
 
     // chordsのJSON化 (Cメジャー移調済み)
-    const regionStartSec = selectedRegion.x;
-    const regionEndSec = selectedRegion.x + selectedRegion.width;
+    const regionStartSec = selectedRegion.startTime;
+    const regionEndSec = selectedRegion.endTime;
     const chordsJson = [];
     
     parsedChords.forEach((m, mIndex) => {
@@ -293,7 +293,7 @@ export default function Workspace() {
            const transposedName = transposeChord(chord.name, effectiveKey);
            chordsJson.push({
               name: transposedName, 
-              root: transposedName.replace(/m|M|7|dim|aug|sus4|b5|add9/g, ''), 
+              root: transposedName.match(/^[A-G][#b]?/)[0], 
               quality: transposedName.replace(/^[A-G][#b]?/, '') || 'M',
               start: (chordTimeSec - firstNoteTimeSec) / secondsPerBeat,
               duration: timePerChordSec / secondsPerBeat
