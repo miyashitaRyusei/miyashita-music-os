@@ -1,6 +1,6 @@
 import { SparklesIcon, FireIcon, HandRaisedIcon, ArrowsUpDownIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const COLORS = {
   original: '#facc15', // 自作曲
@@ -283,6 +283,75 @@ function EnergyCurvePanel({ original, like }) {
   );
 }
 
+function RhythmDistributionPanel({ original, like }) {
+  // 比較したいリズム要素のリスト
+  const categories = [
+    '強拍 (1,3拍目)',
+    '弱拍 (2,4拍目)',
+    '裏拍 (8分ウラ)',
+    'シンコペーション/16分'
+  ];
+
+  // 全ノート数を計算してパーセンテージを出す
+  const getTotal = (countsObj) => Object.values(countsObj || {}).reduce((sum, c) => sum + c, 0);
+  const origTotal = getTotal(original);
+  const likeTotal = getTotal(like);
+
+  const chartData = categories.map(cat => {
+    const origCount = original?.[cat] || 0;
+    const likeCount = like?.[cat] || 0;
+    
+    return {
+      name: cat.replace('拍目', '').replace('ウラ', '').replace('/16分', ''), // ラベルを短くする
+      original: origTotal > 0 ? Math.round((origCount / origTotal) * 100) : 0,
+      like: likeTotal > 0 ? Math.round((likeCount / likeTotal) * 100) : 0,
+    };
+  });
+
+  return (
+    <div className="card" style={{ flex: 1, minWidth: '300px' }}>
+      <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        <MusicalNoteIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
+        リズム配置・重心 (Syncopation)
+      </h3>
+      
+      <div style={{ width: '100%', height: 250 }}>
+        <ResponsiveContainer>
+          <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 20, left: -20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} 
+              angle={-25}
+              textAnchor="end"
+            />
+            <YAxis 
+              domain={[0, 'dataMax + 10']} 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} 
+              tickFormatter={(val) => `${val}%`}
+            />
+            <Tooltip 
+              formatter={(value) => [`${value}%`, '']}
+              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              cursor={{ fill: 'var(--bg-secondary)' }}
+            />
+            <Legend wrapperStyle={{ fontSize: '12px', marginTop: '10px' }} />
+            <Bar name="自作曲" dataKey="original" fill={COLORS.original} radius={[4, 4, 0, 0]} maxBarSize={40} />
+            <Bar name="好きな曲" dataKey="like" fill={COLORS.like} radius={[4, 4, 0, 0]} maxBarSize={40} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+        ※フレーズ内の全ノートのうち、どのタイミングから発音されているかの割合を示します。
+      </p>
+    </div>
+  );
+}
+
 export default function AdvancedMetricsPanel({ advancedMetrics, unfilteredAdvancedMetrics }) {
   if (!advancedMetrics) return null;
 
@@ -296,12 +365,9 @@ export default function AdvancedMetricsPanel({ advancedMetrics, unfilteredAdvanc
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
         <EnergyCurvePanel original={unfilteredOrig} like={unfilteredLike} />
-        <RankingList 
-          title="リズム配置・重心 (Syncopation)" 
-          icon={MusicalNoteIcon} 
+        <RhythmDistributionPanel 
           original={original.rhythmPositions} 
           like={like.rhythmPositions} 
-          dislike={dislike.rhythmPositions} 
         />
       </div>
 
