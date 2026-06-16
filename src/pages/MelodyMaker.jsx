@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import useAppStore from '../store/useAppStore';
 import { playCombinedSequence, stopAudio } from '../utils/audioPlayer';
-import { PlayIcon, BookmarkIcon, TrashIcon, PuzzlePieceIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { generateMidiBlob, downloadMidiBlob } from '../utils/midiExporter';
+import { PlayIcon, BookmarkIcon, TrashIcon, PuzzlePieceIcon, SparklesIcon, ArrowDownTrayIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { PlayIcon as PlayIconSolid, StopIcon as StopIconSolid } from '@heroicons/react/24/solid';
 import RhythmPatternCanvas from '../components/rhythm-dictionary/RhythmPatternCanvas';
 import PitchPatternCanvas from '../components/pitch-dictionary/PitchPatternCanvas';
@@ -213,6 +214,27 @@ export default function MelodyMaker() {
     saveGeneratedMelody(pitchId, rhythmId);
   };
 
+  const handleExportMidi = (pitchDegrees, rhythmTimings, defaultFilename) => {
+    try {
+      const blob = generateMidiBlob(pitchDegrees, rhythmTimings, tempo);
+      downloadMidiBlob(blob, defaultFilename);
+    } catch (e) {
+      console.error(e);
+      alert('MIDIの生成に失敗しました。');
+    }
+  };
+
+  const handleDragStartMidi = (e, pitchDegrees, rhythmTimings, defaultFilename) => {
+    try {
+      const blob = generateMidiBlob(pitchDegrees, rhythmTimings, tempo);
+      const url = URL.createObjectURL(blob);
+      e.dataTransfer.setData('DownloadURL', `audio/midi:${defaultFilename}:${url}`);
+      e.dataTransfer.effectAllowed = 'copy';
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const renderPitchCard = (pattern, isSelected, onClick) => {
     const song = registeredSongs.find(s => s.id === pattern.songId);
     return (
@@ -420,6 +442,29 @@ export default function MelodyMaker() {
                 <BookmarkIcon style={{ width: '18px', height: '18px' }} />
                 この組み合わせを保存
               </button>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '16px', opacity: (selectedBase && selectedTarget) ? 1 : 0.5 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>DAWへ直接ドラッグ＆ドロップ対応！</div>
+                <button 
+                  className="btn btn--outline"
+                  disabled={!selectedBase || !selectedTarget}
+                  draggable={selectedBase && selectedTarget}
+                  onDragStart={(e) => {
+                    const pitch = baseType === 'pitch' ? selectedBase : selectedTarget;
+                    const rhythm = baseType === 'pitch' ? selectedTarget : selectedBase;
+                    handleDragStartMidi(e, pitch.degrees, rhythm.timings, `melody_combo_${tempo}bpm.mid`);
+                  }}
+                  onClick={() => {
+                    const pitch = baseType === 'pitch' ? selectedBase : selectedTarget;
+                    const rhythm = baseType === 'pitch' ? selectedTarget : selectedBase;
+                    handleExportMidi(pitch.degrees, rhythm.timings, `melody_combo_${tempo}bpm.mid`);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: (selectedBase && selectedTarget) ? 'grab' : 'not-allowed', borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}
+                >
+                  <DocumentArrowDownIcon style={{ width: '18px', height: '18px' }} />
+                  MIDIを書き出す (Drag me!)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -448,6 +493,15 @@ export default function MelodyMaker() {
                           }}
                         >
                           <PlayIcon style={{ width: '14px', height: '14px' }} />
+                        </button>
+                        <button 
+                          className="btn btn--sm btn--ghost"
+                          title="MIDIダウンロード (DAWにドラッグも可)"
+                          draggable={true}
+                          onDragStart={(e) => handleDragStartMidi(e, pitchPattern.degrees, rhythmPattern.timings, `saved_melody_${tempo}bpm.mid`)}
+                          onClick={() => handleExportMidi(pitchPattern.degrees, rhythmPattern.timings, `saved_melody_${tempo}bpm.mid`)}
+                        >
+                          <ArrowDownTrayIcon style={{ width: '14px', height: '14px' }} />
                         </button>
                         <button 
                           className="btn btn--sm btn--ghost"
