@@ -190,8 +190,15 @@ export default function MelodyMaker() {
       setSelectedTargetId(randomPitch.id);
     }
     
-    // UIの更新を待ってから再生
+    // UIの更新を待ってから再生＆スクロール
     setTimeout(async () => {
+      // 選択されたカードまでスクロール
+      const baseEl = document.getElementById(`base-card-${baseType === 'pitch' ? randomPitch.id : randomRhythm.id}`);
+      if (baseEl) baseEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      
+      const targetEl = document.getElementById(`target-card-${baseType === 'pitch' ? randomRhythm.id : randomPitch.id}`);
+      if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
       setIsPlaying(true);
       await playCombinedSequence(randomPitch.degrees, randomRhythm.timings, tempo, () => {
         setIsPlaying(false);
@@ -235,11 +242,12 @@ export default function MelodyMaker() {
     }
   };
 
-  const renderPitchCard = (pattern, isSelected, onClick) => {
+  const renderPitchCard = (pattern, isSelected, onClick, idPrefix = 'card') => {
     const song = registeredSongs.find(s => s.id === pattern.songId);
     return (
       <div 
         key={pattern.id}
+        id={`${idPrefix}-${pattern.id}`}
         className={`dict-card ${isSelected ? 'selected' : ''}`}
         onClick={() => onClick(pattern.id)}
         style={{ cursor: 'pointer', border: isSelected ? '2px solid var(--accent-blue)' : 'none', minHeight: '120px' }}
@@ -255,11 +263,12 @@ export default function MelodyMaker() {
     );
   };
 
-  const renderRhythmCard = (pattern, isSelected, onClick) => {
+  const renderRhythmCard = (pattern, isSelected, onClick, idPrefix = 'card') => {
     const song = registeredSongs.find(s => s.id === pattern.songId);
     return (
       <div 
         key={pattern.id}
+        id={`${idPrefix}-${pattern.id}`}
         className={`dict-card ${isSelected ? 'selected' : ''}`}
         onClick={() => onClick(pattern.id)}
         style={{ cursor: 'pointer', border: isSelected ? '2px solid var(--accent-orange)' : 'none' }}
@@ -361,8 +370,8 @@ export default function MelodyMaker() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {basePatterns.map(pattern => 
                 baseType === 'pitch' 
-                  ? renderPitchCard(pattern, selectedBaseId === pattern.id, handleBaseSelect)
-                  : renderRhythmCard(pattern, selectedBaseId === pattern.id, handleBaseSelect)
+                  ? renderPitchCard(pattern, selectedBaseId === pattern.id, handleBaseSelect, 'base-card')
+                  : renderRhythmCard(pattern, selectedBaseId === pattern.id, handleBaseSelect, 'base-card')
               )}
               {basePatterns.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>辞書にデータがありません</p>}
             </div>
@@ -384,8 +393,8 @@ export default function MelodyMaker() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {targetPatterns.map(pattern => 
                   baseType === 'pitch' 
-                    ? renderRhythmCard(pattern, selectedTargetId === pattern.id, handleTargetSelect)
-                    : renderPitchCard(pattern, selectedTargetId === pattern.id, handleTargetSelect)
+                    ? renderRhythmCard(pattern, selectedTargetId === pattern.id, handleTargetSelect, 'target-card')
+                    : renderPitchCard(pattern, selectedTargetId === pattern.id, handleTargetSelect, 'target-card')
                 )}
                 {targetPatterns.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>同じ音数のパターンがありません</p>}
               </div>
