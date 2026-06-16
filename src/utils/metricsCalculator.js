@@ -425,6 +425,36 @@ export function calculateMetrics({
   finalizeSectionPitch('like');
   finalizeSectionPitch('dislike');
 
+  // 曲ごとのセクション間コントラスト（Aメロ→Cメロ）を計算
+  const calculateContrast = (phrases) => {
+    const songSections = {};
+    phrases.forEach(p => {
+      if (!p.section || !p.songId) return;
+      if (!songSections[p.songId]) songSections[p.songId] = { 'Aメロ': [], 'Cメロ': [] };
+      if (p.section === 'Aメロ' || p.section === 'Cメロ') {
+        songSections[p.songId][p.section].push(...(p.notes || []).map(n => n.pitch));
+      }
+    });
+
+    let totalJump = 0;
+    let jumpCount = 0;
+
+    Object.values(songSections).forEach(sections => {
+      if (sections['Aメロ'].length > 0 && sections['Cメロ'].length > 0) {
+        const avgA = sections['Aメロ'].reduce((a, b) => a + b, 0) / sections['Aメロ'].length;
+        const avgC = sections['Cメロ'].reduce((a, b) => a + b, 0) / sections['Cメロ'].length;
+        totalJump += (avgC - avgA);
+        jumpCount++;
+      }
+    });
+
+    return jumpCount > 0 ? totalJump / jumpCount : null;
+  };
+
+  advancedMetrics.original.sectionContrast = calculateContrast(groups.original.phrases);
+  advancedMetrics.like.sectionContrast = calculateContrast(groups.like.phrases);
+  advancedMetrics.dislike.sectionContrast = calculateContrast(groups.dislike.phrases);
+
   return {
     histogramData,
     radarChartData,

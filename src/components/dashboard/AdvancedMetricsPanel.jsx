@@ -183,16 +183,8 @@ function InsightsPanel({ original, like }) {
 }
 
 function ContrastPanel({ original, like }) {
-  const getJump = (data) => {
-    if (!data) return null;
-    if (data['Aメロ'] !== undefined && data['Cメロ'] !== undefined) {
-      return (data['Cメロ'] - data['Aメロ']);
-    }
-    return null;
-  };
-
-  const origJump = getJump(original.sectionPitch);
-  const likeJump = getJump(like.sectionPitch);
+  const origJump = original.sectionContrast;
+  const likeJump = like.sectionContrast;
 
   if (origJump === null && likeJump === null) {
     return (
