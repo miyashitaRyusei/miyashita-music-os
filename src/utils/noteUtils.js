@@ -54,6 +54,32 @@ export function midiToNoteName(midiNumber) {
 }
 
 /**
+ * 英語ノート名（C4, D#5 等）をMIDIノート番号に変換する。
+ * 
+ * @param {string} noteName - ノート名（C4, D#5 等）
+ * @returns {number|null} MIDIノート番号
+ */
+export function noteNameToMidi(noteName) {
+  if (!noteName) return null;
+  const match = noteName.match(/^([A-G][#b]?)(-?\d+)$/);
+  if (!match) return null;
+  
+  const pitchClassStr = match[1];
+  const octave = parseInt(match[2], 10);
+  
+  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  let pitchClass = noteNames.indexOf(pitchClassStr);
+  if (pitchClass === -1) {
+    const flatMap = {'Cb': 11, 'Db': 1, 'Eb': 3, 'Fb': 4, 'Gb': 6, 'Ab': 8, 'Bb': 10};
+    pitchClass = flatMap[pitchClassStr] !== undefined ? flatMap[pitchClassStr] : -1;
+  }
+  
+  if (pitchClass === -1) return null;
+  
+  return (octave + 1) * 12 + pitchClass;
+}
+
+/**
  * あるノートの開始時間が属する小節の「頭（ダウンビート）」の絶対時間を算出する。
  *
  * @param {number} noteTime - ノートの開始時間（秒）

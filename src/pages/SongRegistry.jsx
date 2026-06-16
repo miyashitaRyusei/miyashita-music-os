@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MusicalNoteIcon, TrashIcon } from '@heroicons/react/24/outline';
 import useAppStore from '../store/useAppStore';
+import { noteNameToMidi } from '../utils/noteUtils';
 
 export default function SongRegistry() {
   const { 
@@ -118,6 +119,18 @@ export default function SongRegistry() {
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>RANGE</span>
                     <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       {song.min_note || song.minNote || '-'} ~ {song.max_note || song.maxNote || '-'}
+                      {(() => {
+                        const minStr = song.min_note || song.minNote;
+                        const maxStr = song.max_note || song.maxNote;
+                        if (minStr && maxStr && minStr !== '-' && maxStr !== '-') {
+                          const minMidi = noteNameToMidi(minStr);
+                          const maxMidi = noteNameToMidi(maxStr);
+                          if (minMidi !== null && maxMidi !== null) {
+                            return <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginLeft: '6px', fontWeight: 600 }}>({maxMidi - minMidi}半音)</span>;
+                          }
+                        }
+                        return null;
+                      })()}
                     </span>
                   </div>
                 </div>
