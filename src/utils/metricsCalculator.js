@@ -425,35 +425,66 @@ export function calculateMetrics({
   finalizeSectionPitch('like');
   finalizeSectionPitch('dislike');
 
-  // 曲ごとのセクション間コントラスト（Aメロ→Cメロ）を計算
-  const calculateContrast = (phrases) => {
-    const songSections = {};
+  // エネルギー曲線の可視化用データを計算 (Aメロ, Bメロ, Cメロ)
+  const calculateEnergyCurve = (phrases) => {
+    const sectionsData = {
+      'Aメロ': { pitches: [], densities: [], syncos: [] },
+      'Bメロ': { pitches: [], densities: [], syncos: [] },
+      'Cメロ': { pitches: [], densities: [], syncos: [] }
+    };
+
     phrases.forEach(p => {
-      if (!p.section || !p.songId) return;
-      if (!songSections[p.songId]) songSections[p.songId] = { 'Aメロ': [], 'Cメロ': [] };
-      if (p.section === 'Aメロ' || p.section === 'Cメロ') {
-        songSections[p.songId][p.section].push(...(p.notes || []).map(n => n.pitch));
-      }
+      if (!p.section || !sectionsData[p.section]) return;
+      
+      const notes = p.notes || [];
+      if (notes.length === 0) return;
+
+      // 1. ピッチ (平均ピッチ)
+      const avgPitch = notes.reduce((sum, n) => sum + n.pitch, 0) / notes.length;
+      sectionsData[p.section].pitches.push(avgPitch);
+
+      // 2. 音数密度 (Notes per beat)
+      const startBeats = notes.map(n => n.start);
+      const endBeats = notes.map(n => n.start + n.duration);
+      const firstBeat = Math.min(...startBeats);
+      const lastBeat = Math.max(...endBeats);
+      let duration = lastBeat - firstBeat;
+      if (duration <= 0) duration = 1; 
+      sectionsData[p.section].densities.push(notes.length / duration);
+
+      // 3. シンコペーション率 (%)
+      const startBeatOffset = p.startBeat || 0;
+      let syncoCount = 0;
+      notes.forEach(n => {
+        const absoluteBeat = startBeatOffset + n.start;
+        const positionInMeasure = Math.round((absoluteBeat % 4) * 100) / 100;
+        if (positionInMeasure % 1 !== 0) {
+          syncoCount++;
+        }
+      });
+      sectionsData[p.section].syncos.push((syncoCount / notes.length) * 100);
     });
 
-    let totalJump = 0;
-    let jumpCount = 0;
-
-    Object.values(songSections).forEach(sections => {
-      if (sections['Aメロ'].length > 0 && sections['Cメロ'].length > 0) {
-        const avgA = sections['Aメロ'].reduce((a, b) => a + b, 0) / sections['Aメロ'].length;
-        const avgC = sections['Cメロ'].reduce((a, b) => a + b, 0) / sections['Cメロ'].length;
-        totalJump += (avgC - avgA);
-        jumpCount++;
-      }
+    const result = {};
+    Object.keys(sectionsData).forEach(sec => {
+      const data = sectionsData[sec];
+      result[sec] = {
+        pitch: data.pitches.length > 0 ? data.pitches.reduce((a, b) => a + b, 0) / data.pitches.length : null,
+        density: data.densities.length > 0 ? data.densities.reduce((a, b) => a + b, 0) / data.densities.length : null,
+        syncopation: data.syncos.length > 0 ? data.syncos.reduce((a, b) => a + b, 0) / data.syncos.length : null
+      };
     });
 
-    return jumpCount > 0 ? totalJump / jumpCount : null;
+    return [
+      { section: 'Aメロ', ...result['Aメロ'] },
+      { section: 'Bメロ', ...result['Bメロ'] },
+      { section: 'Cメロ', ...result['Cメロ'] }
+    ];
   };
 
-  advancedMetrics.original.sectionContrast = calculateContrast(groups.original.phrases);
-  advancedMetrics.like.sectionContrast = calculateContrast(groups.like.phrases);
-  advancedMetrics.dislike.sectionContrast = calculateContrast(groups.dislike.phrases);
+  advancedMetrics.original.energyCurve = calculateEnergyCurve(groups.original.phrases);
+  advancedMetrics.like.energyCurve = calculateEnergyCurve(groups.like.phrases);
+  advancedMetrics.dislike.energyCurve = calculateEnergyCurve(groups.dislike.phrases);
 
   return {
     histogramData,

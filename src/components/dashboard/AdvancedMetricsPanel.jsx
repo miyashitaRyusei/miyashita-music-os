@@ -1,4 +1,6 @@
 import { SparklesIcon, FireIcon, HandRaisedIcon, ArrowsUpDownIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const COLORS = {
   original: '#facc15', // 自作曲
@@ -182,48 +184,100 @@ function InsightsPanel({ original, like }) {
   );
 }
 
-function ContrastPanel({ original, like }) {
-  const origJump = original.sectionContrast;
-  const likeJump = like.sectionContrast;
+function EnergyCurvePanel({ original, like }) {
+  const [activeTab, setActiveTab] = useState('pitch');
 
-  if (origJump === null && likeJump === null) {
-    return (
-      <div className="card" style={{ flex: 1, minWidth: '300px' }}>
-        <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowsUpDownIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
-          セクション間コントラスト（Aメロ→Cメロの起伏）
-        </h3>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '16px' }}>
-          ※コントラストを分析するには、同じ曲の中で「Aメロ」と「Cメロ(サビ)」の両方をストックする必要があります。
-        </p>
-      </div>
-    );
-  }
+  const tabs = [
+    { id: 'pitch', label: '音高 (Pitch)', dataKey: 'pitch', unit: '', domain: ['dataMin - 2', 'dataMax + 2'] },
+    { id: 'density', label: '音数 (Density)', dataKey: 'density', unit: ' notes/beat', domain: [0, 'dataMax + 1'] },
+    { id: 'syncopation', label: 'リズム (Syncopation)', dataKey: 'syncopation', unit: '%', domain: [0, 100] }
+  ];
 
-  const formatJump = (val) => {
-    if (val === null || isNaN(val)) return '-';
-    return (val > 0 ? '+' : '') + val.toFixed(1) + ' 半音';
-  };
+  const activeTabData = tabs.find(t => t.id === activeTab);
+
+  // original と like のデータをマージして Recharts 用に整形
+  const chartData = ['Aメロ', 'Bメロ', 'Cメロ'].map(sec => {
+    const origData = original.energyCurve?.find(d => d.section === sec) || {};
+    const likeData = like.energyCurve?.find(d => d.section === sec) || {};
+    return {
+      name: sec,
+      original: origData[activeTab],
+      like: likeData[activeTab],
+    };
+  });
 
   return (
     <div className="card" style={{ flex: 1, minWidth: '300px' }}>
       <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
         <ArrowsUpDownIcon style={{ width: '18px', height: '18px', color: 'var(--accent-blue)' }} />
-        セクション間コントラスト（Aメロ→Cメロの起伏）
+        エネルギー曲線 (Energy Curve)
       </h3>
-      
-      <div style={{ display: 'flex', gap: '16px' }}>
-        <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
-          <div style={{ fontSize: '13px', color: COLORS.original, fontWeight: 'bold' }}>自作曲の跳躍幅</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '8px' }}>{formatJump(origJump)}</div>
-        </div>
-        <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
-          <div style={{ fontSize: '13px', color: COLORS.like, fontWeight: 'bold' }}>好きな曲の跳躍幅</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '8px' }}>{formatJump(likeJump)}</div>
-        </div>
+
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-default)', paddingBottom: '8px' }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '6px 12px',
+              border: 'none',
+              background: activeTab === tab.id ? 'var(--accent-blue)' : 'transparent',
+              color: activeTab === tab.id ? '#fff' : 'var(--text-secondary)',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
-      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '12px' }}>
-        ※平均ピッチの差分。Cメロ(サビ)にかけての「音高の爆発力」を示します。
+      
+      <div style={{ width: '100%', height: 250 }}>
+        <ResponsiveContainer>
+          <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+            <YAxis 
+              domain={activeTabData.domain} 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} 
+              width={40}
+            />
+            <Tooltip 
+              formatter={(value) => [value ? value.toFixed(1) + activeTabData.unit : '-', '']}
+              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+            />
+            <Legend wrapperStyle={{ fontSize: '12px' }} />
+            <Line 
+              name="自作曲" 
+              type="monotone" 
+              dataKey="original" 
+              stroke={COLORS.original} 
+              strokeWidth={3} 
+              dot={{ r: 4, strokeWidth: 2 }} 
+              activeDot={{ r: 6 }} 
+              connectNulls
+            />
+            <Line 
+              name="好きな曲" 
+              type="monotone" 
+              dataKey="like" 
+              stroke={COLORS.like} 
+              strokeWidth={3} 
+              dot={{ r: 4, strokeWidth: 2 }} 
+              activeDot={{ r: 6 }} 
+              connectNulls
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '16px' }}>
+        ※Aメロ→Bメロ→Cメロ（サビ）にかけての推移を示します。自作曲と好きな曲の「盛り上げ方のクセ」を比較しましょう。
       </p>
     </div>
   );
@@ -241,7 +295,7 @@ export default function AdvancedMetricsPanel({ advancedMetrics, unfilteredAdvanc
       <InsightsPanel original={original} like={like} />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
-        <ContrastPanel original={unfilteredOrig} like={unfilteredLike} />
+        <EnergyCurvePanel original={unfilteredOrig} like={unfilteredLike} />
         <RankingList 
           title="リズム配置・重心 (Syncopation)" 
           icon={MusicalNoteIcon} 
