@@ -9,7 +9,8 @@ import {
   SparklesIcon, 
   FolderIcon,
   PuzzlePieceIcon,
-  PlayCircleIcon
+  PlayCircleIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline';
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { path: '/pitch-dictionary', label: 'ピッチ辞書', icon: <ChartBarIcon /> },
   { path: '/rhythm-dictionary', label: 'リズム辞書', icon: <ClockIcon /> },
   { path: '/chord-dictionary', label: 'コード辞書', icon: <CubeTransparentIcon /> },
+  { path: '/reharmonize-dictionary', label: 'リハモ辞書', icon: <BookOpenIcon /> },
   { path: '/melody-chord-dictionary', label: 'メロディ×コード', icon: <SparklesIcon /> },
   { path: '/melody-maker', label: 'メロディメーカー', icon: <PuzzlePieceIcon /> },
   { path: '/ear-training', label: 'イヤートレーニング', icon: <PlayCircleIcon /> },

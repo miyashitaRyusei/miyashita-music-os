@@ -8,6 +8,7 @@ import RhythmDictionary from './pages/RhythmDictionary';
 import ChordDictionary from './pages/ChordDictionary';
 import MelodyMaker from './pages/MelodyMaker';
 import MelodyChordDictionary from './pages/MelodyChordDictionary';
+import ReharmonizeDictionary from './pages/ReharmonizeDictionary';
 import SongRegistry from './pages/SongRegistry';
 import EarTraining from './pages/EarTraining';
 import MyLibrary from './pages/MyLibrary';
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/pitch-dictionary" element={<PitchDictionary />} />
           <Route path="/rhythm-dictionary" element={<RhythmDictionary />} />
           <Route path="/chord-dictionary" element={<ChordDictionary />} />
+          <Route path="/reharmonize-dictionary" element={<ReharmonizeDictionary />} />
           <Route path="/melody-maker" element={<MelodyMaker />} />
           <Route path="/melody-chord-dictionary" element={<MelodyChordDictionary />} />
           <Route path="/ear-training" element={<EarTraining />} />
