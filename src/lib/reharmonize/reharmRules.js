@@ -64,26 +64,21 @@ export const reharmRules = [
         return [];
       }
 
-      const originalProgression = chords.map(c => c.original).join(' | ');
-      
-      // 新しい進行を生成
-      const newChords = [...chords];
-      newChords.splice(targetIndex, 0, insertedChordObj);
-      const reharmonizedProgression = newChords.map(c => c.original || formatChord(c)).join(' | ');
+      const displayText = `${insertedChordStr} | ${targetChord.original}`;
 
       return [
         {
           id: `rule_001_${targetIndex}_${Date.now()}`,
-          originalProgression,
-          reharmonizedProgression,
+          targetIndex,
+          originalChord: targetChord.original,
+          candidateChords: [insertedChordStr, targetChord.original],
+          displayText,
           ruleId: "rule_001",
           ruleName: "セカンダリードミナント",
-          changedIndex: targetIndex,
-          insertedChord: insertedChordStr,
-          targetChord: targetChord.original,
           description: `${targetChord.original}に向かうために、直前に${insertedChordStr}を挿入。`,
           strength: 2,
-          tags: ["定番", "ドミナント", "目的地感"]
+          tags: ["定番", "ドミナント", "目的地感"],
+          melodyMatch: null
         }
       ];
     }

@@ -30,5 +30,5 @@ export function generateReharmCandidates(progressionStr, rules) {
     }
   }
 
-  return { candidates, error: null };
+  return { candidates, originalChords: chords, error: null };
 }

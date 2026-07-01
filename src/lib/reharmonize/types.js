@@ -22,14 +22,14 @@
 /**
  * @typedef {Object} ReharmCandidate
  * @property {string} id - 候補ID
- * @property {string} originalProgression - 元の進行文字列
- * @property {string} reharmonizedProgression - リハモ後の進行文字列
+ * @property {number} targetIndex - 変化の対象となったインデックス
+ * @property {string} originalChord - ターゲットになった元のコード
+ * @property {string[]} candidateChords - 置き換えるコードの配列 (例: ["E7", "Am"])
+ * @property {string} displayText - UI表示用のテキスト (例: "E7 | Am")
  * @property {string} ruleId - 適用されたルールID
  * @property {string} ruleName - 適用されたルール名
- * @property {number} changedIndex - 変化の起点となったインデックス
- * @property {string} [insertedChord] - 挿入されたコード
- * @property {string} [targetChord] - ターゲットになったコード
  * @property {string} description - この候補の説明
  * @property {number} strength - 変化の度合い
  * @property {string[]} tags - 特徴タグ
+ * @property {number|null} melodyMatch - メロディ音との一致度 (将来拡張用)
  */
